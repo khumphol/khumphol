@@ -47,13 +47,13 @@ if(is_post() && post('action') === 'pay'){
     }
 }
 ?>
-<h1>ชำระเงิน</h1>
+<h1><i class="fi fi-rr-shield-check" style="color:var(--primary)"></i> ชำระเงิน</h1>
 <?php if($err): ?><div class="alert alert-danger"><?= h($err) ?></div><?php endif; ?>
 <div class="grid g2" style="align-items:start">
   <div class="card">
     <?php foreach($quote['items'] as $it): $c = $it['course']; ?>
-    <div class="row mb" style="flex-wrap:nowrap">
-      <img src="<?= h(cover_url($c)) ?>" alt="" style="width:110px;border-radius:9px;aspect-ratio:16/9;object-fit:cover">
+    <div class="ck-item">
+      <?= course_cover($c, '') ?>
       <div style="flex:1"><strong><?= h($c['title']) ?></strong><div class="small muted"><?= h($c['subtitle']) ?></div></div>
       <div class="right nowrap"><?php if((float)$it['discount'] > 0): ?><div class="small muted" style="text-decoration:line-through"><?= baht($it['list']) ?></div><?php endif; ?><strong><?= baht($it['paid']) ?></strong></div>
     </div>
@@ -64,12 +64,12 @@ if(is_post() && post('action') === 'pay'){
       <button class="btn">ใช้โค้ด</button>
     </form>
   </div>
-  <div class="card">
-    <div class="row between"><span>ราคารวม</span><span><?= baht($quote['list']) ?></span></div>
+  <div class="card ck-sum">
+    <div class="ck-line"><span>ราคารวม</span><span><?= baht($quote['list']) ?></span></div>
     <?php if((float)$quote['discount'] > 0): ?>
       <div class="row between" style="color:var(--green)"><span>ส่วนลด (<?= h($quote['coupon']['code']) ?>)</span><span>-<?= baht($quote['discount']) ?></span></div>
     <?php endif; ?>
-    <div class="row between mt" style="font-size:1.25rem;font-weight:700;border-top:1px solid var(--border);padding-top:.6rem"><span>ยอดชำระ</span><span><?= baht($quote['total']) ?></span></div>
+    <div class="ck-line ck-total"><span>ยอดชำระ</span><span><?= baht($quote['total']) ?></span></div>
     <?php if(setting('vat_enabled', '0') === '1'): ?><div class="small muted right">รวม VAT <?= h(setting('vat_rate', '7')) ?>% แล้ว</div><?php endif; ?>
     <form method="post" id="payForm" class="mt">
       <?= csrf_field() ?>

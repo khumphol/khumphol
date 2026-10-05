@@ -8,7 +8,7 @@ $items = db_all("SELECT oi.*, c.title FROM order_items oi JOIN courses c ON c.id
 $refunded = (float)db_val("SELECT COALESCE(SUM(amount),0) FROM refunds WHERE order_id = ?", [(int)$o['id']]);
 $vat = (float)$o['vat_amount'] > 0;
 ?>
-<style>@media print{ .topbar,.footer,.no-print{display:none !important} body{background:#fff} .card{box-shadow:none;border:0} }</style>
+<style>@media print{ .site-header,.site-footer,.topbar,.footer,.no-print{display:none !important} body{background:#fff} .card{box-shadow:none;border:0} }</style>
 <div class="card" style="max-width:760px;margin:0 auto">
   <div class="row between"><div><h1 style="margin:0"><?= $vat ? 'ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ' : 'ใบเสร็จรับเงิน' ?></h1>
     <div class="muted small">เลขที่ <?= h($o['receipt_no']) ?> · วันที่ <?= h(date('d/m/Y H:i', strtotime($o['paid_at']))) ?> · คำสั่งซื้อ <?= h($o['order_no']) ?></div></div>

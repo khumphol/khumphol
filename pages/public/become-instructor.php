@@ -23,7 +23,8 @@ if(is_post() && (!$prof || $prof['status'] === 'rejected')){
     }
 }
 ?>
-<div class="card" style="max-width:680px;margin:0 auto">
+<div class="card" style="max-width:720px;margin:0 auto">
+  <div class="section-eyebrow">สอนกับเรา</div>
   <h1>สมัครเป็นผู้สอน</h1>
   <?php if($prof && $prof['status'] === 'pending'): ?>
     <div class="alert alert-info">ใบสมัครของคุณอยู่ระหว่างการตรวจสอบ (ส่งเมื่อ <?= h($prof['updated_at']) ?>)</div>

@@ -19,12 +19,12 @@ if(is_post()){
 $items = db_all("SELECT c.* FROM cart_items ci JOIN courses c ON c.id = ci.course_id WHERE ci.user_id = ? ORDER BY ci.id", [$uid]);
 $total = 0; foreach($items as $c) $total += (float)$c['price'];
 ?>
-<h1>ตะกร้า</h1>
+<h1><i class="fi fi-rr-shopping-cart" style="color:var(--primary)"></i> ตะกร้า</h1>
 <?php if(!$items): ?><div class="card muted">ตะกร้าว่าง — <a href="<?= h(u('courses')) ?>">เลือกดูคอร์ส</a></div><?php return; endif; ?>
 <div class="grid g2" style="align-items:start">
   <div class="card"><?php foreach($items as $c): ?>
-    <div class="row mb" style="flex-wrap:nowrap">
-      <img src="<?= h(cover_url($c)) ?>" alt="" style="width:110px;border-radius:9px;aspect-ratio:16/9;object-fit:cover">
+    <div class="ck-item">
+      <?= course_cover($c, '') ?>
       <div style="flex:1"><a href="<?= h(u('course', ['slug' => $c['slug']])) ?>"><strong><?= h($c['title']) ?></strong></a>
         <?php if($c['status'] !== 'published'): ?><div class="small" style="color:var(--red)">คอร์สนี้ปิดการขายแล้ว</div><?php endif; ?></div>
       <strong class="nowrap"><?= baht($c['price']) ?></strong>

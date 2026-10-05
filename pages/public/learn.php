@@ -2,6 +2,7 @@
 $c = db_one("SELECT * FROM courses WHERE id = ?", [(int)get('course')]);
 if(!$c){ echo '<div class="card">ไม่พบคอร์ส</div>'; return; }
 $TITLE = $c['title'];
+$FULL = true;
 $uid = current_user_id();
 $isOwner = $uid && ((int)$c['instructor_id'] === $uid || is_admin());
 $enrolled = $uid && OrderService::isEnrolled($uid, $c['id']);
@@ -52,9 +53,9 @@ $modOff = ($lesson['type'] === 'indy' && !PermissionService::moduleOn('indy')) |
        || ($lesson['type'] === 'playground' && !IntegrationService::pgEnabled());
 $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND user_id = ?", [(int)$c['id'], $uid]) : null;
 ?>
-<div class="learn">
+<div class="container"><div class="learn">
   <div>
-    <div class="small muted"><a href="<?= h(u('course', ['slug' => $c['slug']])) ?>"><?= h($c['title']) ?></a></div>
+    <div class="learn-crumb"><a href="<?= h(u('courses')) ?>">คอร์สเรียน</a> <i class="fi fi-rr-angle-small-right"></i> <a href="<?= h(u('course', ['slug' => $c['slug']])) ?>"><?= h($c['title']) ?></a></div>
     <h1><?= h($lesson['title']) ?></h1>
     <?php if($modOff): ?>
       <div class="card muted">บทเรียนนี้ยังเปิดใช้งานไม่ได้ในขณะนี้</div>
@@ -77,7 +78,7 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
         <a class="btn btn-primary" href="<?= h(IntegrationService::pgLessonUrl($lesson['ref_key'])) ?>" target="_blank" rel="noopener">เริ่มกิจกรรม ↗</a>
       </div>
     <?php endif; ?>
-    <?php if(trim((string)$lesson['content']) !== ''): ?><div class="card mt prose"><?= h($lesson['content']) ?></div><?php endif; ?>
+    <?php if(trim((string)$lesson['content']) !== ''): ?><div class="sidebar-card mt-2"><h3>รายละเอียดบทเรียน</h3><div class="prose" style="color:var(--text-secondary);line-height:1.8"><?= h($lesson['content']) ?></div></div><?php endif; ?>
     <?php if($enrolled): ?>
       <form method="post" class="mt" id="completeForm"><?= csrf_field() ?><input type="hidden" name="action" value="complete">
         <button class="btn btn-primary"><?= isset($done[(int)$lesson['id']]) ? '✓ เรียนแล้ว — ไปบทถัดไป' : 'ทำเครื่องหมายว่าเรียนจบ' ?></button></form>
@@ -92,7 +93,8 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
       <div class="alert alert-info mt">นี่คือบทเรียนตัวอย่าง — <a href="<?= h(u('checkout', ['course' => $c['id']])) ?>">ซื้อคอร์ส</a> เพื่อเรียนครบทุกบท</div>
     <?php endif; ?>
   </div>
-  <aside class="card curriculum">
+  <aside class="sidebar-card curriculum">
+    <h3 style="margin-bottom:.6rem"><?= h($c['title']) ?></h3>
     <?php if($enrolled): ?><div class="small muted">ความคืบหน้า <?= $pct ?>%</div><div class="progress"><span style="width:<?= $pct ?>%"></span></div><?php endif; ?>
     <?php if($cert): ?><a class="btn btn-primary btn-block mt" style="color:#fff;justify-content:center" href="<?= h(u('certificate', ['serial' => $cert['serial']])) ?>">🎓 ใบประกาศของฉัน</a><?php endif; ?>
     <?php if($vcOpen): ?><a class="btn btn-block mt" style="justify-content:center" href="<?= h(asset('vc.php').'?course='.(int)$c['id']) ?>" target="_blank">🧑‍🏫 เข้าห้องเรียนเสมือน ↗</a><?php endif; ?>
@@ -101,8 +103,8 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
       <?php foreach($all as $l): if((int)$l['section_id'] !== (int)$s['id']) continue;
         $open = $enrolled || $isOwner || (int)$l['is_preview'] === 1; ?>
         <a class="<?= (int)$l['id'] === (int)$lesson['id'] ? 'on' : '' ?>" <?= $open ? 'href="'.h(u('learn', ['course' => $c['id'], 'lesson' => $l['id']])).'"' : 'style="color:var(--muted)"' ?>>
-          <span class="tick"><?= isset($done[(int)$l['id']]) ? '✓' : ($open ? '' : '🔒') ?></span><?= h($l['title']) ?></a>
+          <?php $no = ($no ?? 0) + 1; ?><span class="tick<?= isset($done[(int)$l['id']]) ? ' done' : '' ?>"><?= isset($done[(int)$l['id']]) ? '<i class="fi fi-rr-check"></i>' : ($open ? $no : '<i class="fi fi-rr-lock"></i>') ?></span><?= h($l['title']) ?></a>
       <?php endforeach; ?>
     <?php endforeach; ?>
   </aside>
-</div>
+</div></div>

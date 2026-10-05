@@ -9,14 +9,15 @@ $courses = db_all("SELECT c.*, (SELECT COUNT(*) FROM lessons l WHERE l.course_id
 $orders = db_all("SELECT o.*, (SELECT GROUP_CONCAT(c.title SEPARATOR ', ') FROM order_items oi JOIN courses c ON c.id = oi.course_id WHERE oi.order_id = o.id) AS titles
                   FROM orders o WHERE o.user_id = ? ORDER BY o.id DESC LIMIT 50", [$uid]);
 ?>
-<h1>การเรียนของฉัน</h1>
+<div class="row between mb"><h1 style="margin:0">การเรียนของฉัน</h1><a class="btn btn-outline btn-sm" href="<?= h(u('courses')) ?>"><i class="fi fi-rr-search"></i> หาคอร์สเพิ่ม</a></div>
 <?php if(!$courses): ?><div class="card muted">ยังไม่มีคอร์ส — <a href="<?= h(u('courses')) ?>">เลือกดูคอร์ส</a></div><?php endif; ?>
-<div class="grid g3">
+<div class="grid grid-3">
 <?php foreach($courses as $c): $pct = $c['n'] ? round($c['done'] * 100 / $c['n']) : 0; ?>
-  <a class="course-card" href="<?= h(u('learn', ['course' => $c['id']])) ?>">
-    <img src="<?= h(cover_url($c)) ?>" alt="">
-    <div class="body"><div class="title"><?= h($c['title']) ?></div>
-      <div class="progress mt"><span style="width:<?= $pct ?>%"></span></div><div class="small muted"><?= $pct ?>% (<?= (int)$c['done'] ?>/<?= (int)$c['n'] ?>)</div></div>
+  <a class="card course-card ml-card" href="<?= h(u('learn', ['course' => $c['id']])) ?>">
+    <div class="course-cover-wrap"><?= course_cover($c) ?></div>
+    <div class="card-body"><h3 class="course-title"><?= h($c['title']) ?></h3>
+      <div class="progress"><span style="width:<?= $pct ?>%"></span></div>
+      <div class="ml-pct"><span><?= (int)$c['done'] ?>/<?= (int)$c['n'] ?> บทเรียน</span><b><?= $pct >= 100 ? '✓ เรียนจบแล้ว' : $pct.'%' ?></b></div></div>
   </a>
 <?php endforeach; ?>
 </div>

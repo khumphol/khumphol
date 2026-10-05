@@ -15,7 +15,7 @@ $valid = !$cert['revoked_at'];
 .cert h1{font-size:clamp(1.4rem,3.6vw,2.6rem);margin:.2em 0;color:#4f46e5;letter-spacing:.02em}
 .cert .name{font-size:clamp(1.3rem,3.4vw,2.4rem);font-weight:700;margin:.4em 0;border-bottom:2px solid #c7d2fe;padding:0 1em .2em}
 .cert .muted{color:#64748b}
-@media print{ .topbar,.footer,.no-print{display:none !important} body{background:#fff} .cert{box-shadow:none} }
+@media print{ .site-header,.site-footer,.topbar,.footer,.no-print{display:none !important} body{background:#fff} .cert{box-shadow:none} }
 </style>
 <?php if(!$valid): ?><div class="alert alert-danger">ใบประกาศนี้ถูกเพิกถอนแล้ว</div><?php endif; ?>
 <div class="cert">

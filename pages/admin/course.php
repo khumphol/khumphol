@@ -38,7 +38,7 @@ $rateScope = 'course'; $rateTarget = (int)$c['id']; $rateEffective = RevenueShar
 <div class="grid g2" style="align-items:start">
   <div class="card">
     <h2>รายละเอียด</h2>
-    <img src="<?= h(cover_url($c)) ?>" alt="" style="border-radius:9px;max-width:320px">
+    <div style="max-width:320px;border-radius:9px;overflow:hidden"><?= course_cover($c, 'adm-cover') ?></div>
     <p><strong><?= h($c['subtitle']) ?></strong></p><div class="prose small"><?= h($c['description']) ?></div>
     <h2 class="mt">เนื้อหา</h2>
     <?php foreach($sections as $s): ?><div class="small"><strong><?= h($s['title']) ?></strong>

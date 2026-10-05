@@ -11,7 +11,7 @@ if(is_post()){
     redirect(u('pay-return', ['order' => $o['order_no']]));
 }
 ?>
-<div class="auth card">
+<div class="auth card" style="text-align:center">
   <span class="badge badge-amber">โหมดทดสอบ</span>
   <h1 class="mt">Gateway จำลอง</h1>
   <p class="muted">คำสั่งซื้อ <?= h($o['order_no']) ?> · ยอด <strong><?= baht($o['total']) ?></strong></p>

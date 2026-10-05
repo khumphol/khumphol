@@ -127,7 +127,13 @@ function upload_image($field, $dir){
     return @move_uploaded_file($_FILES[$field]['tmp_name'], $abs) ? 'uploads/'.$dir.'/'.$fn : '';
 }
 function cover_url($c){
-    return !empty($c['cover']) ? asset($c['cover']) : asset('assets/cover-placeholder.svg');
+    return !empty($c['cover']) ? asset($c['cover']) : '';
+}
+/** ปกคอร์ส: รูปจริง หรือปกสำรองไล่สีตามชื่อคอร์ส (ไม่ใช้ไอคอนเล่นแบบเดิม) */
+function course_cover($c, $class = 'course-cover'){
+    if(!empty($c['cover'])) return '<img class="'.h($class).'" src="'.h(asset($c['cover'])).'" alt="" loading="lazy">';
+    $hue = (int)(hexdec(substr(md5((string)($c['title'] ?? '')), 0, 4)) % 360);
+    return '<div class="cv-fallback '.h($class).'" style="--h:'.$hue.'"><span>'.h($c['title'] ?? '').'</span></div>';
 }
 
 // ── ป้ายสถานะ ──

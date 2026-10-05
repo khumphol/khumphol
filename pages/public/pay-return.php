@@ -15,18 +15,18 @@ if(in_array($o['status'], ['pending', 'failed'], true) && $o['gateway_ref']){
 }
 $item = db_one("SELECT oi.course_id, c.title, c.slug FROM order_items oi JOIN courses c ON c.id = oi.course_id WHERE oi.order_id = ? LIMIT 1", [$o['id']]);
 ?>
-<div class="auth card" style="text-align:center">
+<div class="card result">
   <?php if($o['status'] === 'paid'): ?>
-    <div style="font-size:2.5rem">🎉</div><h1>ชำระเงินสำเร็จ</h1>
+    <div class="result-ico ok"><i class="fi fi-rr-check"></i></div><h1>ชำระเงินสำเร็จ</h1>
     <p class="muted"><?= h($item['title']) ?> · <?= baht($o['total']) ?></p>
     <a class="btn btn-primary" href="<?= h(u('learn', ['course' => $item['course_id']])) ?>">เริ่มเรียนเลย</a>
     <a class="btn" href="<?= h(u('receipt', ['order' => $o['order_no']])) ?>">ใบเสร็จ</a>
   <?php elseif($o['status'] === 'pending'): ?>
-    <h1>กำลังรอยืนยันการชำระเงิน</h1>
+    <div class="result-ico wait"><i class="fi fi-rr-hourglass-end"></i></div><h1>กำลังรอยืนยันการชำระเงิน</h1>
     <p class="muted">ระบบจะเปิดสิทธิ์เรียนให้อัตโนมัติเมื่อได้รับการยืนยันจากผู้ให้บริการ</p>
     <a class="btn" href="<?= h(u('pay-return', ['order' => $o['order_no']])) ?>">ตรวจสอบอีกครั้ง</a>
   <?php else: ?>
-    <h1>ชำระเงินไม่สำเร็จ</h1>
+    <div class="result-ico bad"><i class="fi fi-rr-cross"></i></div><h1>ชำระเงินไม่สำเร็จ</h1>
     <p class="muted">คำสั่งซื้อ <?= h($o['order_no']) ?> <?= status_badge($o['status']) ?></p>
     <a class="btn btn-primary" href="<?= h(u('checkout', ['course' => $item['course_id']])) ?>">ลองอีกครั้ง</a>
   <?php endif; ?>

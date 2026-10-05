@@ -17,14 +17,14 @@ if(is_post()){
 }
 ?>
 <div class="auth card">
-  <h1>สมัครสมาชิก</h1>
+  <h1>สมัครสมาชิก</h1><p class="auth-sub">สมัครฟรี เริ่มเรียนคอร์สตัวอย่างได้ทันที</p>
   <?php if($err): ?><div class="alert alert-danger"><?= h($err) ?></div><?php endif; ?>
   <form method="post">
     <?= csrf_field() ?>
     <label>ชื่อ-นามสกุล</label><input type="text" name="name" value="<?= h(post('name')) ?>" required>
     <label>อีเมล</label><input type="email" name="email" value="<?= h(post('email')) ?>" required>
     <label>รหัสผ่าน (อย่างน้อย 8 ตัว)</label><input type="password" name="password" minlength="8" required>
-    <button class="btn btn-primary btn-block mt">สมัครสมาชิก</button>
+    <button class="btn btn-primary btn-lg btn-block mt">สมัครสมาชิก</button>
   </form>
-  <p class="small muted mt">มีบัญชีแล้ว? <a href="<?= h(u('login')) ?>">เข้าสู่ระบบ</a></p>
+  <p class="small muted mt text-center">มีบัญชีแล้ว? <a href="<?= h(u('login')) ?>">เข้าสู่ระบบ</a></p>
 </div>

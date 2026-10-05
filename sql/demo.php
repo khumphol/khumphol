@@ -19,6 +19,10 @@ foreach($courses as $c){
     db_insert("INSERT INTO lessons (course_id, section_id, title, type, video_url, content, duration_min, is_preview, sort_order) VALUES (?, ?, 'แนะนำคอร์ส', 'video', 'https://www.youtube.com/watch?v=OK_JCtrrv-c', 'ภาพรวม', 5, 1, 1)", [$id, $s]);
     db_insert("INSERT INTO lessons (course_id, section_id, title, type, content, duration_min, sort_order) VALUES (?, ?, 'บทที่ 1', 'text', 'เนื้อหาบทแรก', 12, 2)", [$id, $s]);
 }
+// ภาพปกคอร์สตัวอย่าง (assets/demo/covers — ทำจาก HTML ด้วยฟอนต์ K2D/Sarabun สีชุดเดียวกับ aleanor)
+foreach(['php-basics', 'excel-for-work', 'ux-writing'] as $sl)
+    db_write("UPDATE courses SET cover = ? WHERE slug = ?", ['assets/demo/covers/'.$sl.'.jpg', $sl]);
+
 // อัตราเฉพาะคอร์ส Excel = 20% (โปรเปิดตัว)
 $excel = db_one("SELECT * FROM courses WHERE slug = 'excel-for-work'");
 RevenueShareService::setRate('course', $excel['id'], 20, null, null, 'โปรเปิดตัว');

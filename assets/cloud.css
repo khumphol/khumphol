@@ -1,0 +1,134 @@
+/* ============================================================
+   Aleanor Cloud — ส่วนเสริมหน้าบ้านเฉพาะตลาดคอร์ส (ซื้อ/ตะกร้า/เรียน/ใบเสร็จ)
+   ใช้ token เดียวกับ front.css (คัดลอกจาก aleanor_ai) — โหลดต่อท้าย front.css
+   ============================================================ */
+:root { --green:#059669; --red:#dc2626; --amber:#b45309; --muted:var(--text-muted); --primary-soft:rgba(var(--primary-rgb),.1); }
+
+/* utilities ที่หน้าเดิมใช้ */
+.muted { color: var(--text-secondary); } .small { font-size: .86rem; } .right { text-align: right; } .nowrap { white-space: nowrap; }
+.mt { margin-top: 1rem; } .mb { margin-bottom: 1rem; } .mt2 { margin-top: 2rem; }
+.row { display: flex; gap: .65rem; align-items: center; flex-wrap: wrap; } .between { justify-content: space-between; }
+.grid.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); } .grid.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); } .grid.g4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+.grid > * { min-width: 0; }
+@media (max-width: 860px){ .grid.g3, .grid.g4 { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 640px){ .grid.g2, .grid.g3, .grid.g4 { grid-template-columns: 1fr; } }
+.prose { white-space: pre-wrap; }
+.page-body { padding: 2.25rem 0 4rem; }
+.page-body h1 { font-size: clamp(1.45rem, 2.6vw, 1.9rem); font-weight: 700; margin-bottom: 1rem; letter-spacing: -.01em; }
+.page-body h2 { font-size: 1.12rem; font-weight: 700; margin-bottom: .8rem; }
+
+/* กล่องเนื้อหา: .card ของ aleanor_ai ยกตัวเมื่อ hover (เหมาะกับการ์ดคอร์ส) — กล่องเนื้อหาทั่วไปไม่ต้องยก */
+.card:not(.cc-card):not(.course-card) { padding: 1.4rem 1.5rem; overflow: visible; }
+.card:not(.cc-card):not(.course-card):hover { transform: none; box-shadow: var(--shadow); border-color: var(--border); }
+.card + .card { margin-top: 1rem; }
+.grid > .card + .card { margin-top: 0; }
+
+/* ฟอร์ม — หน้าตาเดียวกับ .form-input ของ aleanor_ai */
+.page-body label { display: block; font-size: .85rem; font-weight: 600; color: var(--text-secondary); margin: .9rem 0 6px; }
+.page-body input[type=text], .page-body input[type=email], .page-body input[type=password], .page-body input[type=number],
+.page-body input[type=url], .page-body select, .page-body textarea {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-size: .95rem;
+  font-family: var(--font-body); background: var(--card); color: var(--text); outline: none; transition: border-color .2s, box-shadow .2s; }
+.page-body textarea { min-height: 110px; resize: vertical; }
+.page-body input:focus, .page-body select:focus, .page-body textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(var(--primary-rgb),.12); }
+.check { display: flex; gap: .5rem; align-items: center; font-weight: 500; }
+.btn-block { width: 100%; }
+.btn-danger { background: transparent; color: var(--red); border: 1.5px solid rgba(220,38,38,.35); }
+.btn-danger:hover { background: rgba(220,38,38,.08); color: var(--red); }
+.btn:not(.btn-primary):not(.btn-outline):not(.btn-danger) { background: var(--card); color: var(--text); border: 1.5px solid var(--border); }
+.btn:not(.btn-primary):not(.btn-outline):not(.btn-danger):hover { border-color: var(--primary); color: var(--primary); }
+form.inline { display: inline; }
+.alert-warning { background: rgba(245,158,11,.1); color: var(--amber); border: 1px solid rgba(245,158,11,.3); }
+.alert-info { background: rgba(var(--primary-rgb),.08); color: var(--primary-dark); border: 1px solid rgba(var(--primary-rgb),.25); }
+.badge-green { background: rgba(16,185,129,.12); color: var(--green); } .badge-amber { background: rgba(245,158,11,.14); color: var(--amber); }
+.badge-red { background: rgba(220,38,38,.1); color: var(--red); } .badge-gray { background: rgba(100,116,139,.12); color: var(--text-secondary); }
+
+/* ปกคอร์สสำรอง (ไม่มีรูป) — ไล่สีตามชื่อคอร์ส แทนไอคอนเล่น */
+.cv-fallback { position: relative; width: 100%; aspect-ratio: 16/9; display: flex; align-items: flex-end; padding: 1.1rem 1.2rem;
+  background: linear-gradient(140deg, hsl(var(--h),70%,24%) 0%, hsl(var(--h),75%,38%) 60%, hsl(calc(var(--h) + 18),80%,52%) 100%); color: #fff; overflow: hidden; }
+.cv-fallback::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.14) 1.4px, transparent 1.8px); background-size: 22px 22px; }
+.cv-fallback::after { content: ''; position: absolute; width: 70%; aspect-ratio: 1; border-radius: 50%; border: 1.5px dashed rgba(255,255,255,.22); right: -22%; top: -40%; }
+.cv-fallback span { position: relative; z-index: 1; font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; line-height: 1.25;
+  text-shadow: 0 2px 14px rgba(0,0,0,.25); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.cc-cover-wrap .cv-fallback { height: 100%; }
+
+/* การ์ดคอร์ส: ราคา + ปุ่ม */
+.cc-price { display: flex; align-items: center; justify-content: space-between; margin-top: .8rem; padding-top: .8rem; border-top: 1px dashed var(--border); }
+.cc-price b { font-family: var(--font-display); font-size: 1.12rem; color: var(--primary-dark); }
+.cc-price .free { color: var(--green); }
+.cc-price .owned { font-size: .8rem; font-weight: 600; color: var(--green); }
+
+/* หน้าแรก — แบนเนอร์ภาพ + hero */
+.cl-banner { position: relative; height: 340px; overflow: hidden; }
+.cl-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cl-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(12,74,110,0) 55%, rgba(12,74,110,.35)); }
+@media (max-width: 768px){ .cl-banner { height: 200px; } }
+.why-grid .why { padding: 1.4rem; }
+.why-ico { width: 46px; height: 46px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem;
+  background: rgba(var(--primary-rgb),.1); color: var(--primary); margin-bottom: .8rem; }
+.why h3 { font-size: 1.05rem; margin-bottom: .3rem; } .why p { color: var(--text-secondary); font-size: .9rem; }
+
+/* หน้ารายละเอียดคอร์ส — กล่องซื้อ */
+.buy-card .buy-price { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--text); line-height: 1.1; }
+.buy-card .buy-price small { font-size: .9rem; color: var(--text-muted); font-weight: 500; }
+.buy-card .btn { width: 100%; margin-top: .6rem; }
+.buy-card ul { list-style: none; margin: 1rem 0 0; display: grid; gap: .45rem; font-size: .88rem; color: var(--text-secondary); }
+.buy-card ul i { color: var(--primary); margin-right: 6px; }
+.ep-item .ep-free { font-size: .7rem; font-weight: 700; color: var(--primary); background: rgba(var(--primary-rgb),.1); padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
+.ep-item a.ep-link { position: absolute; inset: 0; }
+
+/* ตะกร้า / ชำระเงิน / ใบเสร็จ */
+.ck-item { display: flex; gap: 1rem; align-items: center; padding: .9rem 0; border-bottom: 1px solid var(--border); }
+.ck-item:last-child { border-bottom: 0; }
+.ck-item img, .ck-item .cv-fallback { width: 128px; flex-shrink: 0; border-radius: 12px; aspect-ratio: 16/9; object-fit: cover; padding: .5rem .6rem; }
+.ck-item .cv-fallback span { font-size: .8rem; }
+.ck-sum { position: sticky; top: 90px; }
+.ck-line { display: flex; justify-content: space-between; padding: .4rem 0; font-size: .95rem; }
+.ck-total { border-top: 1.5px solid var(--border); margin-top: .5rem; padding-top: .8rem; font-family: var(--font-display); font-size: 1.35rem; font-weight: 700; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { padding: .65rem .6rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+th { font-size: .78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+
+/* ฟอร์มล็อกอิน/สมัคร — กล่องกลางหน้าแบบ aleanor_ai */
+.auth { max-width: 440px; margin: 1rem auto 2rem; }
+.auth.card { padding: 2rem 2rem 1.6rem; }
+.auth h1 { text-align: center; }
+.auth-sub { text-align: center; color: var(--text-secondary); margin: -.4rem 0 1.2rem; font-size: .92rem; }
+
+/* หน้าเรียน */
+.learn { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 1.5rem; padding: 1.75rem 0 4rem; align-items: start; }
+@media (max-width: 960px){ .learn { grid-template-columns: 1fr; } }
+.learn-crumb { font-size: .86rem; color: var(--text-secondary); margin-bottom: .35rem; display: flex; gap: .4rem; align-items: center; }
+.learn h1 { font-size: clamp(1.3rem, 2.4vw, 1.7rem); margin-bottom: 1rem; }
+.player { aspect-ratio: 16/9; background: #000; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); }
+.player iframe, .player video { width: 100%; height: 100%; border: 0; display: block; }
+.curriculum { position: sticky; top: 88px; max-height: calc(100vh - 110px); overflow: auto; }
+.curriculum .sec { font-weight: 700; font-size: .86rem; color: var(--text-secondary); margin: 1rem 0 .35rem; display: flex; gap: 6px; align-items: center; }
+.curriculum a { display: flex; gap: .6rem; align-items: center; padding: .55rem .7rem; border-radius: 10px; color: var(--text); font-size: .9rem; }
+.curriculum a:hover { background: rgba(var(--primary-rgb),.06); color: var(--text); }
+.curriculum a.on { background: rgba(var(--primary-rgb),.1); color: var(--primary-dark); font-weight: 600; }
+.curriculum .tick { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 700; background: var(--surface2); color: var(--text-secondary); }
+.curriculum .tick.done { background: #10b981; color: #fff; }
+.progress { height: 8px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+.progress > span { display: block; height: 100%; background: linear-gradient(90deg, var(--primary), #06b6d4); border-radius: 99px; }
+
+/* การเรียนของฉัน */
+.ml-card .card-body { display: flex; flex-direction: column; gap: .5rem; }
+.ml-card .ml-pct { font-size: .82rem; color: var(--text-secondary); display: flex; justify-content: space-between; }
+
+/* ผลการชำระเงิน */
+.result { max-width: 520px; margin: 2rem auto; text-align: center; padding: 2.5rem 2rem; }
+.result-ico { width: 74px; height: 74px; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+.result-ico.ok { background: rgba(16,185,129,.12); color: #10b981; } .result-ico.wait { background: rgba(245,158,11,.14); color: #f59e0b; } .result-ico.bad { background: rgba(220,38,38,.1); color: var(--red); }
+
+/* header เพิ่มเติม — ตะกร้า */
+.hd-cart { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px;
+  border-radius: 11px; border: 1.5px solid var(--border); color: var(--text); text-decoration: none; margin-right: 6px; }
+.hd-cart:hover { border-color: var(--primary); color: var(--primary); }
+.hd-cart-n { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 99px; background: var(--primary);
+  color: #fff; font-size: .68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+.mode-pill { font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: rgba(245,158,11,.14); color: var(--amber); }
+.um-logout-form button { width: 100%; border: 0; background: none; font: inherit; cursor: pointer; text-align: left; }

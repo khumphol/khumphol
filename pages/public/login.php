@@ -25,13 +25,13 @@ if(is_post()){
 }
 ?>
 <div class="auth card">
-  <h1>เข้าสู่ระบบ</h1>
+  <h1>เข้าสู่ระบบ</h1><p class="auth-sub">ยินดีต้อนรับกลับ — เรียนต่อจากที่ค้างไว้ได้เลย</p>
   <?php if($err): ?><div class="alert alert-danger"><?= h($err) ?></div><?php endif; ?>
   <form method="post">
     <?= csrf_field() ?>
     <label>อีเมล</label><input type="email" name="email" value="<?= h(post('email')) ?>" required autofocus>
     <label>รหัสผ่าน</label><input type="password" name="password" required>
-    <button class="btn btn-primary btn-block mt">เข้าสู่ระบบ</button>
+    <button class="btn btn-primary btn-lg btn-block mt">เข้าสู่ระบบ</button>
   </form>
-  <p class="small muted mt">ยังไม่มีบัญชี? <a href="<?= h(u('register')) ?>">สมัครสมาชิก</a></p>
+  <p class="small muted mt text-center">ยังไม่มีบัญชี? <a href="<?= h(u('register')) ?>">สมัครสมาชิก</a></p>
 </div>
