@@ -1,98 +1,125 @@
 # Aleanor Cloud
 
-A course marketplace. Instructors apply and an admin approves them. Instructors then build courses and submit them for review, and an admin publishes them. Students buy courses and learn. Revenue is split automatically using rate rules that can be set at three levels.
+Aleanor Cloud is a course marketplace:
+- Anyone can apply to be an instructor, and an admin approves them.
+- Instructors build courses and submit them for review, then an admin publishes them.
+- Students buy courses (one at a time or through a cart) and learn.
+- Revenue is split automatically: rules can be set at three levels, instructor earnings sit in a hold period, then get paid out monthly.
 
-This is a sibling app to `aleanor_ai`. It follows the same conventions: procedural PHP, `?p=` routing, `core/*.core.php` modules, `config.local.php`, bcrypt passwords, CSRF fields and Omise/Stripe. It has its own database, `aleanor_cloud`.
+It is a sibling app to `aleanor_ai` and uses the same conventions: procedural PHP, `?p=` routing, `core/*.core.php`, `config.local.php`, bcrypt, CSRF, Omise/Stripe. The back office copies aleanor_ai's dashboard look (sidebar, topbar, theme, components). Aleanor Cloud has its own database. It never touches the source apps or their databases.
 
-## Run on MAMP
+## Features
+
+| Area | Features |
+|---|---|
+| Public site | Course catalog with search, course page with free preview lessons, cart for several courses, checkout with coupons and tax-invoice details, learning page with progress tracking, reviews, certificates and a public verification page, receipts (with VAT when enabled), my courses |
+| Instructor (`/instructor`) | Dashboard, courses (sections, lessons, price, submit for review), lesson types (video/text/**Indy**/**Docs**/**Playground**), **Aleanor Docs** (Write/Grid/Present, folders, trash, quota), **Aleanor Indy** (branching video), students and their progress, coupons, earnings and payouts, profile, bank account and tax details, a **VC** room per course |
+| Admin (`/admin`) | Dashboard; course review; instructor approval with a per-instructor rate; members; orders and refunds (partial refunds allowed, and refunds through Omise/Stripe); monthly instructor payouts; revenue share rules at 3 levels with history; reports and CSV. The **Admin hub** has: instructor permissions (checkbox matrix), modules on/off, settings, platform coupons, tax and receipts, email and outbox, Playground & VC, and the audit log |
+
+## Run on MAMP (development)
 
 ```bash
-bash sql/install.sh                 # creates the aleanor_cloud DB, loads the schema and seed (MySQL 8889 root/root)
-cp core/config.local.example.php core/config.local.php   # skip if the file already exists
+cp core/config.local.example.php core/config.local.php     # set APP_ENV=dev and the database (MAMP root/root)
+bash sql/install.sh                                         # creates the aleanor_cloud database and runs sql/0*.sql in order
+/Applications/MAMP/bin/php/php8.4.1/bin/php sql/demo.php     # optional: extra courses and sample sales
 ```
 
-Open <http://localhost:8888/2026/aleanor/aleanor_cloud/>
+Open <http://localhost:8888/2026/aleanor/aleanor_cloud/>. Test accounts (password `test1234`): `admin@aleanor.test`, `teacher@aleanor.test`, `student@aleanor.test`.
 
-| Area | URL |
-|---|---|
-| Public site | `index.php` |
-| Instructor | `instructor/` |
-| Admin | `admin/` |
-| Webhook | `api/pay-webhook.php?secret=…` |
-
-Test accounts (password `test1234`): `admin@aleanor.test`, `teacher@aleanor.test`, `student@aleanor.test`.
-
-`bash sql/install.sh --reset` drops the database and recreates it.
-`php sql/demo.php` adds demo data: 2 more published courses, a 20% rate on the Excel course, and 2 sample sales with their revenue split. Screenshots are in `docs/screenshots/`.
-
-**Payments:** with `APP_ENV=dev`, the default is a **mock** gateway, so you can test the full flow without keys. For production, set `APP_ENV=prod` in `config.local.php`. Then choose Omise or Stripe under Admin → Settings and set the Omise/Stripe webhook to the URL shown on that page.
-
-**Cron (daily):** `php cron/release-earnings.php` moves earnings that have passed the hold period from held to available.
+`APP_ENV=dev` turns on the **mock gateway**, so you can test the whole purchase flow without keys.
 
 ## Tests
 
 ```bash
-/Applications/MAMP/bin/php/php8.4.1/bin/php tests/run.php          # unit + integration (rolls back, no leftover data)
-/Applications/MAMP/bin/php/php8.4.1/bin/php tests/run.php --unit   # pure calculations only, no DB
+php tests/run.php        # money, revenue share, rule precedence, cart/coupons, partial refunds, payouts, VAT, permissions, SSO/JWT, throttling
+php tests/indy_test.php  # Indy
+php tests/docs_test.php  # Docs
 ```
 
-## Revenue share rules
+The integration tests run inside a transaction that is rolled back, so they leave no data behind.
 
-- **Rate lookup:** the most specific rule wins, `course > instructor > global`. A rule only applies while the time of payment falls inside its `starts_at`/`ends_at` window (`ends_at` is exclusive). If no rule matches, the app uses `settings.default_platform_rate`.
-- **Calculation (done in satang, no floats):**
+## Deploy (production)
+
+1. Upload all files except `core/config.local.php`, `uploads/*` and `storage/logs/*`. The web root must allow `.htaccess`: it blocks `core/`, `services/`, `sql/`, `tests/`, `cron/`, `views/`, `pages/` and `storage/`, and stops scripts from running in `uploads/`. On nginx, write equivalent rules yourself.
+2. Create `core/config.local.php` from `config.local.example.php`. Set the real DB values and `APP_ENV=prod`. The shipped `config.core.php` defaults to `prod` with an empty DB password.
+3. Import `sql/001_schema.sql`, then `002`–`007` in numeric order. Skip the test accounts in `002_seed.sql` on production: create an admin yourself and delete or suspend those 3 users.
+4. Make `uploads/` and `storage/logs/` writable by the web server. Errors are written to `storage/logs/php-YYYY-MM.log` and are not shown to users.
+5. Use HTTPS. The session cookie `ACSESS` is automatically `Secure`, `HttpOnly` and `SameSite=Lax`.
+6. Under Admin → Settings:
+   - Set `site_base_url`.
+   - Choose Omise or Stripe and enter the keys.
+   - Set the webhook secret, then register the webhook URL shown on that page with Omise/Stripe.
+7. Under Admin → Email, configure SMTP. Under Admin → Tax & receipts, configure VAT, seller details and withholding tax.
+
+### Cron
+
+```cron
+5 0 * * *    php /path/to/aleanor_cloud/cron/release-earnings.php   # release earnings once the hold period ends (default 14 days)
+*/5 * * * *  php /path/to/aleanor_cloud/cron/send-mail.php          # send queued emails
+```
+
+Docs trash is auto-purged after the number of days in `docs_trash_days`.
+
+## Money rules (summary)
+
+- **Rate:** the most specific rule wins (course > instructor > global), applied at the time of payment. Changing a rate never edits the old rule: the old rule is closed and a new one is created, and every change is written to `audit_logs`.
+- **Per sale:**
   - `net = paid − gateway_fee`
   - `platform = round(net × rate)`
   - `instructor = net − platform`
+  - Amounts are calculated in satang, and all values are frozen on `order_items`.
+  - Example: 1000 THB with a 3.65% fee and a 30% rate gives 289.05 to the platform and 674.45 to the instructor.
+- **Coupons:**
+  - An instructor coupon reduces the price before the split.
+  - A platform coupon pays the instructor as if the course sold at full price.
+  - On a cart, the discount is spread across items in proportion to their prices.
+- **Refunds:**
+  - Partial refunds are allowed, several times per item.
+  - The instructor's share is reversed in proportion; the final refund takes whatever is left, so the totals match exactly.
+  - A full refund revokes access to the course.
+  - Refunds can be sent through Omise/Stripe. The gateway is called first; if it fails, nothing is recorded.
+- **Ledger:** append-only.
+  - A sale starts in `held` and moves to `available` once the hold period ends (via cron).
+  - A refund made during the hold period cancels out inside the hold.
+- **Payouts:** a monthly run adds up the available balance up to the end of the month, if it reaches the minimum (default 500).
+  - Withholding tax (default 3%) is deducted.
+  - A `payout` row is written to the ledger.
+  - There is a CSV for the bank transfer, a slip upload and "mark paid", which emails the instructor.
+  - Cancelling a run puts the balance back.
+- **Order confirmation:** done in one transaction. It writes `order_items`, the ledger, the enrollment, the coupon, the receipt number and the email queue. It is idempotent (`FOR UPDATE` lock + unique `gateway_ref`).
 
-  Example: 1000 THB with a 3.65% fee and a 30% rate gives fee 36.50, net 963.50, platform 289.05 and instructor 674.45.
-- **Gateway fee:** taken from Omise (`fee + fee_vat`) when available. Otherwise it is estimated from `gateway_fee_rate`. For multi-item orders, the fee is allocated in proportion to each item's paid amount.
-- **Instructor coupons:** the discount comes off the price before the split.
-- **Platform coupons:** the instructor gets the same share as a full-price sale, and the platform absorbs the discount (its share can go negative).
-- **Snapshots:** `platform_rate`, `rule_id` and all amounts are frozen on `order_items` at payment time. Changing a rate later does not affect past sales.
-- **Rule history:** setting a new rate closes any open rule at the new rule's start time and keeps the history. Every change is written to `audit_logs`.
+## Instructor permissions
 
-## Ledger
+- The registry lives in `services/PermissionService.php` and has 12 features.
+- **Resolution order:**
+  1. A per-instructor override.
+  2. The default for all instructors (`instructor_id NULL`).
+  3. The default in the registry.
 
-`instructor_ledger` is append-only.
+  A feature that belongs to a module that is switched off is always off.
+- **Enforcement:**
+  - The router (`core/router.core.php`) returns 403 server-side.
+  - Menus hide items the instructor can't use.
+  - Some features are also checked inside pages: setting prices, submitting for review, lesson types and VC.
 
-- A `sale` row starts as `held` and is released after `earnings_hold_days` (14).
-- A `refund` row within the hold period is also held, so it cancels the sale out. After release, it is deducted from the available balance.
-- `confirmPaid()` does everything in one transaction: lock the order, then write `order_items`, the ledger rows, the enrollment and the coupon count. It is idempotent: the order is locked `FOR UPDATE` and `gateway_ref` is unique, so repeated webhook calls or page reloads cannot record a sale twice.
+## External modules
+
+| Module | Approach |
+|---|---|
+| **Aleanor Indy** | Ported into this app. Tables `indy_*`, player in `assets/indy/`. |
+| **Aleanor Docs** | Ported into this app. Tables `docs_*`; the import/export cores were copied from aleanor_ai into `core/docs/`. |
+| **Aleanor Playground** | Separate app, linked by SSO ticket (same format as aleanor_ai). Ticket issuer: `playground.php`. API for Playground: `api/playground.php` (`X-Api-Key`). |
+| **Aleanor VC** | Separate app (Node + LiveKit), linked by a 5-minute HS256 JWT (`vc.php?course=`). One room per course; only enrolled students, the instructor and admins can enter. |
+
+See `docs/integration-plan.md` for what each module is and why it was integrated this way.
 
 ## Structure
 
 ```
-core/       config, db (mysqli prepared + db_tx), app helpers/auth, gateway, router
-services/   RevenueShareService, LedgerService, OrderService   ← all money logic lives here
-pages/      public/ instructor/ admin/   (the page runs first, then gets wrapped in views/layout.php)
-sql/        001_schema.sql, 002_seed.sql, install.sh
-tests/run.php
+core/       config, db (mysqli prepared + db_tx), app helpers/auth/throttle, gateway, mail (SMTP), router + menus
+services/   RevenueShare, Ledger, Order, Payout, Mail, Permission, Certificate, Integration, Indy, Docs
+pages/      public/ instructor/ admin/   — the shell is views/layout.php (public) and views/dashboard.php (back office)
+api/        pay-webhook, playground (SSO), indy, docs
+sql/        001…007 migrations + install.sh + demo.php
+cron/       release-earnings, send-mail
 ```
-
-## Done (phases 1–2) / still to do
-
-Done:
-- Signup and login
-- Instructor applications and approval
-- Course, section and lesson CRUD
-- Submit for review → approve, reject or unpublish
-- Learning page with progress tracking and reviews
-- Checkout with coupons (Omise / Stripe / mock)
-- Webhook
-- Revenue share rules at all 3 levels, with history
-- Ledger, hold period and release cron
-- Full refund per order item
-- Ledger adjustments
-- Reports (by month, instructor and course) with CSV export
-- Settings
-- Audit log
-
-Still to do (phases 3–4):
-- Monthly payouts: the `payouts` and `payout_items` tables exist, but there is no UI or PayoutService yet
-- Partial refunds
-- Calling the gateway refund API directly
-- Cart with multiple courses (the tables already support it)
-- Uploaded video files and signed URLs
-- Email notifications
-- Pretty URLs
-- Certificates

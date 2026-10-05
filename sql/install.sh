@@ -9,5 +9,5 @@ MYSQL=${MYSQL:-/Applications/MAMP/Library/bin/mysql80/bin/mysql}
 M=("$MYSQL" -uroot -proot -h127.0.0.1 -P8889 --default-character-set=utf8mb4)
 if [ "$1" == "--reset" ]; then "${M[@]}" -e "DROP DATABASE IF EXISTS \`$DB\`" 2>/dev/null; fi
 "${M[@]}" -e "CREATE DATABASE IF NOT EXISTS \`$DB\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci" 2>/dev/null
-for f in 0*.sql; do echo "→ $f"; "${M[@]}" "$DB" < "$f" 2>/dev/null; done
+for f in 0*.sql; do echo "→ $f"; "${M[@]}" "$DB" < "$f" 2> >(grep -v "Using a password" >&2); done
 echo "เสร็จ: ฐานข้อมูล $DB"

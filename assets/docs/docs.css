@@ -1,0 +1,39 @@
+/* Aleanor Docs — สไตล์ที่ใช้ร่วมกันทุกหน้า (ยกมาจาก aleanor_ai/dashboard/index.php: กล่อง dialog + กลุ่มปุ่ม segmented) */
+.dlg-ov{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:99999;padding:1rem;backdrop-filter:blur(3px)}
+.dlg-ov.on{display:flex;animation:dlgIn .15s ease}
+@keyframes dlgIn{from{opacity:0}to{opacity:1}}
+.dlg-box{background:var(--bg-card,#fff);border-radius:18px;max-width:400px;width:100%;padding:1.7rem 1.5rem 1.3rem;text-align:center;box-shadow:0 24px 60px -12px rgba(0,0,0,.45);animation:dlgUp .2s cubic-bezier(.4,0,.2,1)}
+@keyframes dlgUp{from{transform:translateY(14px);opacity:0}to{transform:none;opacity:1}}
+.dlg-ic{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.45rem;margin:0 auto 1rem}
+.dlg-ic.danger{background:rgba(239,68,68,.12);color:#ef4444}
+.dlg-ic.warn{background:rgba(245,158,11,.12);color:#f59e0b}
+.dlg-ic.info{background:rgba(59,130,246,.12);color:#3b82f6}
+.dlg-msg{font-size:1.02rem;font-weight:600;color:var(--text,#1e293b);margin-bottom:1.4rem;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.ic-flip{display:inline-block;transform:scaleX(-1)}   /* ชุดไอคอนไม่มี align-right จึงพลิก align-left แทน */
+/* กลุ่มปุ่ม (segmented) — ใช้ร่วมกันทุกหน้า */
+.btn-grp{display:inline-flex;align-items:center;gap:3px;padding:3px;background:var(--bg);border:1.5px solid var(--border);border-radius:11px}
+.btn-grp > button{width:30px;height:28px;min-width:30px;padding:0 6px;border-radius:8px;border:1.5px solid transparent;background:transparent;
+  color:var(--text-secondary);font-family:inherit;font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:.13s}
+.btn-grp > button.wide{width:auto;padding:0 10px}
+.btn-grp > button:hover{background:color-mix(in srgb,var(--primary) 10%,transparent);color:var(--primary)}
+.btn-grp > button.on{background:var(--card);color:var(--primary);border-color:var(--primary)}
+.btn-grp > button:disabled{opacity:.4;cursor:not-allowed}
+.btn-grp .sw{width:22px;height:22px;min-width:22px;border-radius:6px;border:1.5px solid var(--border);padding:0}
+.btn-grp .sw:hover{transform:translateY(-1px)}
+.btn-grp .sw.on{border-color:var(--primary);box-shadow:0 0 0 2px color-mix(in srgb,var(--primary) 28%,transparent)}
+.btn-grp input[type=color]{width:22px;height:22px;min-width:22px;padding:0;border:1.5px dashed var(--border);border-radius:6px;
+  background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none}
+.btn-grp input[type=color]::-webkit-color-swatch-wrapper{padding:1px}
+.btn-grp input[type=color]::-webkit-color-swatch{border:none;border-radius:4px}
+.btn-grp input[type=color]:hover{border-color:var(--primary);transform:translateY(-1px)}
+.grp-lb{font-size:.74rem;color:var(--text-muted);padding:0 4px 0 6px;white-space:nowrap}
+.dlg-input{width:100%;margin:0 0 1.35rem;text-align:left;font-family:inherit;font-size:.95rem;
+  padding:11px 14px;border:1.5px solid var(--border,#e2e8f0);border-radius:11px;background:var(--bg-card,#fff);
+  color:var(--text,#1e293b);min-height:46px}
+.dlg-input:focus{outline:none;border-color:var(--primary,#6366f1);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary,#6366f1) 15%,transparent)}
+.dlg-box:has(.dlg-input) .dlg-msg{margin-bottom:1rem;font-size:.95rem;font-weight:500}
+.dlg-act{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:.2rem}
+.dlg-act .btn{min-width:104px;justify-content:center}
+/* เครื่องมือแก้ไข: ปุ่มกลุ่มให้ตัดบรรทัดสวยบนจอแคบ */
+.btn-danger-solid{background:#ef4444;color:#fff;border:none}
+.btn-danger-solid:hover{background:#dc2626;color:#fff}

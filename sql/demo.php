@@ -32,5 +32,19 @@ $o2 = OrderService::createOrder(3, OrderService::quote($excel));
 OrderService::attachGatewayRef($o2['id'], 'mock', 'mock_demo_2');
 OrderService::confirmPaid($o2['id'], 'mock_demo_2');
 LedgerService::releaseDue();
+
+// นักเรียนเรียนจบ PHP พื้นฐาน → ใบประกาศ
+foreach(db_all("SELECT id FROM lessons WHERE course_id = ?", [(int)$php['id']]) as $l)
+    db_write("INSERT INTO lesson_progress (user_id, course_id, lesson_id, completed_at, last_seen_at) VALUES (3, ?, ?, NOW(), NOW())
+              ON DUPLICATE KEY UPDATE completed_at = NOW()", [(int)$php['id'], (int)$l['id']]);
+$cert = CertificateService::issueIfEligible(3, (int)$php['id']);
+echo 'certificate: '.($cert['serial'] ?? '-')."\n";
+
+// รอบจ่ายเดือนที่แล้ว (ยอดขาย PHP พ้นช่วงพักแล้ว)
+$ids = PayoutService::createRun(date('Y-m', strtotime('first day of last month')));
+echo 'payouts: '.count($ids)."\n";
+
+// ตะกร้าตัวอย่าง
+db_write("INSERT IGNORE INTO cart_items (user_id, course_id, created_at) SELECT 3, id, NOW() FROM courses WHERE slug = 'ux-writing'");
 foreach(db_all("SELECT c.title, oi.paid_amount, oi.gateway_fee, oi.platform_rate, oi.platform_amount, oi.instructor_amount FROM order_items oi JOIN courses c ON c.id = oi.course_id") as $r)
     echo implode(' | ', $r)."\n";

@@ -14,6 +14,7 @@ run_area('instructor', [
     'profile'     => 'instructor/profile.php',
     'docs'        => ['file' => 'instructor/docs.php',        'feature' => 'docs', 'module' => 'docs'],
     'doc-edit'    => ['file' => 'instructor/doc-edit.php',    'feature' => 'docs', 'module' => 'docs', 'menu' => 'docs'],
+    'doc-view'    => ['file' => 'instructor/doc-view.php',    'feature' => 'docs', 'module' => 'docs', 'menu' => 'docs'],
     'indy'        => ['file' => 'instructor/indy.php',        'feature' => 'lesson.indy', 'module' => 'indy'],
     'indy-edit'   => ['file' => 'instructor/indy-edit.php',   'feature' => 'lesson.indy', 'module' => 'indy', 'menu' => 'indy'],
 ], 'dashboard');
