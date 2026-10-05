@@ -25,10 +25,10 @@ RevenueShareService::setRate('course', $excel['id'], 20, null, null, 'โปร�
 
 // ยอดขายตัวอย่าง: นักเรียนซื้อ PHP พื้นฐาน (1000 บาท, global 30%) เมื่อ 20 วันก่อน (พ้นช่วงพักแล้ว) + Excel (790, 20%) วันนี้
 $php = db_one("SELECT * FROM courses WHERE slug = 'php-basics'");
-$o1 = OrderService::createOrder(3, $php, OrderService::quote($php));
+$o1 = OrderService::createOrder(3, OrderService::quote($php));
 OrderService::attachGatewayRef($o1['id'], 'mock', 'mock_demo_1');
 OrderService::confirmPaid($o1['id'], 'mock_demo_1', null, date('Y-m-d H:i:s', strtotime('-20 days')));
-$o2 = OrderService::createOrder(3, $excel, OrderService::quote($excel));
+$o2 = OrderService::createOrder(3, OrderService::quote($excel));
 OrderService::attachGatewayRef($o2['id'], 'mock', 'mock_demo_2');
 OrderService::confirmPaid($o2['id'], 'mock_demo_2');
 LedgerService::releaseDue();

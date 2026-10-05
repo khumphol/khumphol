@@ -6,7 +6,8 @@ require_once __DIR__.'/password.core.php';
 require_once __DIR__.'/csrf.core.php';
 require_once __DIR__.'/app.core.php';
 require_once __DIR__.'/gateway.core.php';
-require_once dirname(__DIR__).'/services/RevenueShareService.php';
-require_once dirname(__DIR__).'/services/LedgerService.php';
-require_once dirname(__DIR__).'/services/OrderService.php';
+require_once __DIR__.'/mail.core.php';
+foreach(['RevenueShareService', 'LedgerService', 'OrderService', 'PayoutService', 'MailService', 'PermissionService', 'CertificateService'] as $__s)
+    require_once dirname(__DIR__).'/services/'.$__s.'.php';
+unset($__s);
 require_once __DIR__.'/router.core.php';

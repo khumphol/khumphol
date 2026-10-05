@@ -129,3 +129,27 @@ function gwLog($orderId, $event, $ref, $payload){
         $orderId ? (int)$orderId : null, gwProvider() ?: 'none', mb_substr($event, 0, 60), (string)$ref,
         mb_substr(json_encode($payload, JSON_UNESCAPED_UNICODE), 0, 4000), now()]);
 }
+
+/**
+ * คืนเงินผ่าน gateway (บางส่วนได้) → ['ok','ref','error']
+ * Omise: POST /charges/{id}/refunds · Stripe: หา payment_intent จาก Checkout Session แล้ว POST /v1/refunds
+ */
+function gwRefund($ref, $amount){
+    $minor = (int)round((float)$amount * 100);
+    if($ref === '' || $minor <= 0) return ['ok' => false, 'error' => 'ไม่มีข้อมูลการชำระเงินสำหรับคืน'];
+    if(gwProvider() === 'mock' || strpos($ref, 'mock_') === 0) return ['ok' => true, 'ref' => 'mockrf_'.bin2hex(random_bytes(6))];
+    if(!gwEnabled()) return ['ok' => false, 'error' => 'gateway ยังไม่พร้อม'];
+    if(gwProvider() === 'stripe'){
+        $s = gwHttp('https://api.stripe.com/v1/checkout/sessions/'.rawurlencode($ref), null, 'bearer')['json'];
+        $pi = is_array($s) ? (string)($s['payment_intent'] ?? '') : '';
+        if($pi === '') return ['ok' => false, 'error' => 'ไม่พบ payment_intent ของรายการนี้'];
+        $r = gwHttp('https://api.stripe.com/v1/refunds', ['payment_intent' => $pi, 'amount' => $minor], 'bearer');
+        $j = $r['json'];
+        if(!is_array($j) || isset($j['error'])) return ['ok' => false, 'error' => $j['error']['message'] ?? ('คืนเงินไม่สำเร็จ '.$r['err'])];
+        return ['ok' => true, 'ref' => $j['id'] ?? ''];
+    }
+    $r = gwHttp('https://api.omise.co/charges/'.rawurlencode($ref).'/refunds', ['amount' => $minor]);
+    $j = $r['json'];
+    if(!is_array($j) || ($j['object'] ?? '') === 'error') return ['ok' => false, 'error' => $j['message'] ?? ('คืนเงินไม่สำเร็จ '.$r['err'])];
+    return ['ok' => true, 'ref' => $j['id'] ?? ''];
+}

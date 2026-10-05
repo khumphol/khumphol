@@ -15,7 +15,7 @@ $err = $quote['coupon_error'];
 if(is_post() && post('action') === 'pay'){
     require_csrf();
     if($err === ''){
-        $order = OrderService::createOrder($me['id'], $c, $quote);
+        $order = OrderService::createOrder($me['id'], $quote);
         if((float)$order['total'] <= 0){
             // คูปอง 100% — ไม่ต้องผ่าน gateway
             OrderService::attachGatewayRef($order['id'], 'coupon', null);

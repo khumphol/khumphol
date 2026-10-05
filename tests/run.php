@@ -71,6 +71,20 @@ eq('กฎที่ปิดใช้ (is_active=0) ไม่ถูกเลื�
 eq('global หลายอัน → starts_at ล่าสุดชนะ', 5, $r(1, 1, '2026-10-01 00:00:00'));
 eq('ไม่มีกฎ → null', null, RevenueShareService::resolveRule([], 1, 1, '2026-01-01 00:00:00'));
 
+// ── สิทธิ์ผู้สอน (pure) ──
+section('PermissionService::resolve() — override > default > registry');
+eq('ไม่มีการตั้งค่า → ค่าใน registry (vc ปิด)', false, PermissionService::resolve('vc', [], []));
+eq('ไม่มีการตั้งค่า → ค่าใน registry (coupons เปิด)', true, PermissionService::resolve('coupons', [], []));
+eq('ค่าเริ่มต้นปิด', false, PermissionService::resolve('coupons', ['coupons' => 0], []));
+eq('override เปิดชนะค่าเริ่มต้นปิด', true, PermissionService::resolve('coupons', ['coupons' => 0], ['coupons' => 1]));
+eq('override ปิดชนะค่าเริ่มต้นเปิด', false, PermissionService::resolve('vc', ['vc' => 1], ['vc' => 0]));
+eq('โมดูลปิด → ปิดเสมอ แม้ override เปิด', false, PermissionService::resolve('vc', [], ['vc' => 1], false));
+eq('สิทธิ์ที่ไม่รู้จัก → ปิด', false, PermissionService::resolve('nope', ['nope' => 1], []));
+
+section('PayoutService::withholding()');
+eq('1000 × 3% = 30 → 970', ['withholding' => '30.00', 'net' => '970.00'], PayoutService::withholding('1000', 3));
+eq('อัตรา 0', ['withholding' => '0.00', 'net' => '674.45'], PayoutService::withholding('674.45', 0));
+
 // ── 3) integration (ฐานข้อมูล, rollback ทิ้ง) ──
 if(!in_array('--unit', $argv, true)){
     section('integration — checkout → ledger → refund (rollback ทิ้ง)');
@@ -89,7 +103,7 @@ if(!in_array('--unit', $argv, true)){
             $cid = db_insert("INSERT INTO courses (instructor_id, slug, title, price, status, created_at, updated_at) VALUES (?, ?, 'T', 1000, 'published', ?, ?)", [$tid, 'test-'.uniqid(), $now, $now]);
             $course = db_one("SELECT * FROM courses WHERE id = ?", [$cid]);
 
-            $order = OrderService::createOrder($uid, $course, OrderService::quote($course));
+            $order = OrderService::createOrder($uid, OrderService::quote($course));
             OrderService::attachGatewayRef($order['id'], 'mock', 'mock_test_'.uniqid());
             eq('confirmPaid ครั้งแรก = true', true, OrderService::confirmPaid($order['id'], '', null));
             eq('confirmPaid ซ้ำ (webhook ซ้ำ) = false', false, OrderService::confirmPaid($order['id'], '', null));
@@ -123,7 +137,7 @@ if(!in_array('--unit', $argv, true)){
             $code = db_val("SELECT code FROM coupons WHERE id = ?", [$cpId]);
             $q = OrderService::quote($course, $code);
             eq('quote คูปอง 20% → 800', '800.00', $q['total']);
-            $o2 = OrderService::createOrder($uid, $course, $q);
+            $o2 = OrderService::createOrder($uid, $q);
             OrderService::confirmPaid($o2['id'], '', null, date('Y-m-d H:i:s', strtotime('-15 days')));
             $it2 = db_one("SELECT * FROM order_items WHERE order_id = ?", [$o2['id']]);
             eq('คูปองแพลตฟอร์ม + กฎคอร์ส 15% (ณ วันจ่าย -15 วัน ยังเป็น global 30%)', ['30.00','674.45','96.35'],
@@ -137,6 +151,85 @@ if(!in_array('--unit', $argv, true)){
             eq('คืนเงินหลังปล่อย: available = 0', '0.00', LedgerService::balances($tid)['available']);
             $threw = false; try { OrderService::refundItem($it2['id'], 'again'); } catch(RuntimeException $e){ $threw = true; }
             eq('คืนเงินซ้ำไม่ได้', true, $threw);
+
+            // ── คืนเงินบางส่วน ──
+            $c3 = db_insert("INSERT INTO courses (instructor_id, slug, title, price, status, created_at, updated_at) VALUES (?, ?, 'T3', 1000, 'published', ?, ?)", [$tid, 'test-'.uniqid(), $now, $now]);
+            $course3 = db_one("SELECT * FROM courses WHERE id = ?", [$c3]);
+            db_write("UPDATE revenue_share_rules SET is_active = 0 WHERE scope = 'course' AND course_id = ?", [$c3]);
+            RevenueShareService::setRate('course', $c3, 30, date('Y-m-d H:i:s', strtotime('-1 day')), null, 'test');
+            $o3 = OrderService::createOrder($uid, OrderService::quote($course3));
+            OrderService::attachGatewayRef($o3['id'], 'mock', 'mock_t3_'.uniqid());
+            OrderService::confirmPaid($o3['id']);
+            $it3 = db_one("SELECT * FROM order_items WHERE order_id = ?", [$o3['id']]);
+            OrderService::refundItem($it3['id'], 'partial', '300');
+            $it3 = db_one("SELECT * FROM order_items WHERE id = ?", [$it3['id']]);
+            eq('คืนบางส่วน 300/1000 → หักผู้สอน 202.34 (674.45×0.3), ยังเรียนได้', ['300.00','202.34',true,'partially_refunded'],
+               [$it3['refunded_amount'], $it3['instructor_reversed'], OrderService::isEnrolled($uid, $c3), db_val("SELECT status FROM orders WHERE id = ?", [$o3['id']])]);
+            $threw = false; try { OrderService::refundItem($it3['id'], 'too much', '800'); } catch(RuntimeException $e){ $threw = true; }
+            eq('คืนเกินยอดคงเหลือไม่ได้', true, $threw);
+            OrderService::refundItem($it3['id'], 'rest', null, true);   // ผ่าน gateway (mock)
+            $it3 = db_one("SELECT * FROM order_items WHERE id = ?", [$it3['id']]);
+            eq('คืนส่วนที่เหลือ → หักผู้สอนรวมเท่ายอดที่ได้พอดี + ยกเลิกสิทธิ์', ['1000.00','674.45',false,'refunded'],
+               [$it3['refunded_amount'], $it3['instructor_reversed'], OrderService::isEnrolled($uid, $c3), db_val("SELECT status FROM orders WHERE id = ?", [$o3['id']])]);
+            eq('บันทึก gateway_refund_ref เมื่อคืนผ่าน gateway', 1, (int)db_val("SELECT COUNT(*) FROM refunds WHERE order_item_id = ? AND via_gateway = 1 AND gateway_refund_ref LIKE 'mockrf_%'", [$it3['id']]));
+            eq('ledger ผู้สอนคอร์สนี้รวมเป็น 0', '0.00', db_val("SELECT COALESCE(SUM(amount),0) FROM instructor_ledger WHERE order_item_id = ?", [$it3['id']]));
+
+            // ── ตะกร้าหลายคอร์ส + คูปองผู้สอน (เฉพาะคอร์สของผู้สอนคนนั้น) ──
+            $t2 = db_insert("INSERT INTO users (email, password_hash, name, created_at) VALUES (?, 'x', 'teacher2', ?)", ['t2_'.uniqid().'@t.test', $now]);
+            $cA = db_one("SELECT * FROM courses WHERE id = ?", [db_insert("INSERT INTO courses (instructor_id, slug, title, price, status, created_at, updated_at) VALUES (?, ?, 'A', 600, 'published', ?, ?)", [$tid, 'a-'.uniqid(), $now, $now])]);
+            $cB = db_one("SELECT * FROM courses WHERE id = ?", [db_insert("INSERT INTO courses (instructor_id, slug, title, price, status, created_at, updated_at) VALUES (?, ?, 'B', 400, 'published', ?, ?)", [$t2, 'b-'.uniqid(), $now, $now])]);
+            $ic = 'I'.strtoupper(uniqid());
+            db_insert("INSERT INTO coupons (code, owner_type, instructor_id, type, value, created_by, created_at) VALUES (?, 'instructor', ?, 'percent', 50, ?, ?)", [$ic, $tid, $tid, $now]);
+            $q = OrderService::quoteCart([$cA, $cB], $ic);
+            eq('คูปองผู้สอน 50% ลดเฉพาะคอร์สของตัวเอง', ['300.00','0.00','700.00','instructor','none'],
+               [$q['items'][0]['discount'], $q['items'][1]['discount'], $q['total'], $q['items'][0]['coupon_owner'], $q['items'][1]['coupon_owner']]);
+            $fc = 'F'.strtoupper(uniqid());
+            db_insert("INSERT INTO coupons (code, owner_type, type, value, created_by, created_at) VALUES (?, 'platform', 'fixed', 100, 1, ?)", [$fc, $now]);
+            $q = OrderService::quoteCart([$cA, $cB], $fc);
+            eq('คูปองแพลตฟอร์ม 100 บาท กระจาย 60/40', ['60.00','40.00','900.00'], [$q['items'][0]['discount'], $q['items'][1]['discount'], $q['total']]);
+            $o4 = OrderService::createOrder($uid, $q);
+            OrderService::confirmPaid($o4['id']);
+            $its = db_all("SELECT * FROM order_items WHERE order_id = ? ORDER BY id", [$o4['id']]);
+            eq('ออเดอร์ 2 รายการ: ค่าธรรมเนียม 32.85 กระจาย 19.71/13.14', ['19.71','13.14'], [$its[0]['gateway_fee'], $its[1]['gateway_fee']]);
+            eq('คูปองแพลตฟอร์ม: ผู้สอนได้เท่าราคาเต็ม (A: กฎผู้สอน 20%, B: global 30%)', ['462.48','269.78'], [$its[0]['instructor_amount'], $its[1]['instructor_amount']]);
+            eq('มีเลขใบเสร็จ', 1, preg_match('~^RC\d{4}-\d{6}$~', (string)db_val("SELECT receipt_no FROM orders WHERE id = ?", [$o4['id']])));
+            eq('คิวอีเมลผู้ซื้อ + ผู้สอน 2 คน', 3, (int)db_val("SELECT COUNT(*) FROM mail_queue WHERE subject LIKE ? OR subject LIKE 'มียอดขายใหม่: A' OR subject LIKE 'มียอดขายใหม่: B'",
+               ['%'.db_val("SELECT receipt_no FROM orders WHERE id = ?", [$o4['id']])]));
+
+            // ── รอบจ่ายเงิน ──
+            setting_set('payout_min_amount', '500'); setting_set('withholding_tax_rate', '3');
+            LedgerService::adjust($tid, '1000', 'test top-up');
+            $period = date('Y-m');
+            $prev = PayoutService::preview($period);
+            eq('preview: ผู้สอน 1 ยอดถอนได้รวม 1000 (ขาย+คืน+ปรับ)', '1000.00', $prev[$tid]['gross'] ?? null);
+            eq('ผู้สอน 2 ยอดยังพักอยู่ → ไม่เข้ารอบ', false, isset($prev[$t2]));
+            $ids = PayoutService::createRun($period);
+            $p = db_one("SELECT * FROM payouts WHERE instructor_id = ? AND period = ?", [$tid, $period]);
+            eq('รอบจ่าย: gross 1000, หัก 3% = 30, โอน 970', ['1000.00','30.00','970.00'], [$p['gross'], $p['withholding_tax'], $p['net_amount']]);
+            eq('ยอดถอนได้หลังสร้างรอบ = 0', '0.00', LedgerService::balances($tid)['available']);
+            eq('สร้างรอบซ้ำเดือนเดิมไม่ได้ซ้ำ', [], PayoutService::createRun($period));
+            PayoutService::cancel($p['id'], 'test');
+            eq('ยกเลิกรอบ → ยอดกลับมา 1000', '1000.00', LedgerService::balances($tid)['available']);
+            $ids = PayoutService::createRun($period);
+            eq('สร้างรอบใหม่หลังยกเลิกได้', 1, count($ids));
+            eq('markPaid', true, PayoutService::markPaid($ids[0], 'TRX1'));
+            eq('withholding() ปัดเศษ 333.33 × 3% = 10.00', ['10.00','323.33'], array_values(PayoutService::withholding('333.33', 3)));
+
+            // ── VAT ──
+            setting_set('vat_enabled', '1'); setting_set('vat_rate', '7');
+            eq('VAT รวมใน 1070 = 70.00', '70.00', OrderService::vatOf('1070')['vat']);
+            eq('VAT รวมใน 1000 = 65.42', '65.42', OrderService::vatOf('1000')['vat']);
+
+            // ── สิทธิ์ผู้สอน (ฐานข้อมูล) ──
+            PermissionService::set(null, 'coupons', 0);
+            eq('ค่าเริ่มต้นปิดคูปอง → ผู้สอนทุกคนใช้ไม่ได้', false, PermissionService::can($tid, 'coupons'));
+            PermissionService::set($tid, 'coupons', 1);
+            eq('override รายคนเปิด → คนนี้ใช้ได้', [true, false], [PermissionService::can($tid, 'coupons'), PermissionService::can($t2, 'coupons')]);
+            PermissionService::set($tid, 'coupons', null);
+            eq('ลบ override → กลับไปตามค่าเริ่มต้น', false, PermissionService::can($tid, 'coupons'));
+            setting_set('mod_indy', '0');
+            eq('ปิดโมดูล indy → ไม่มีใครใช้ lesson.indy ได้', false, PermissionService::can($tid, 'lesson.indy'));
+            eq('เปลี่ยนสิทธิ์ลง audit_logs', true, (int)db_val("SELECT COUNT(*) FROM audit_logs WHERE action = 'permission_set'") >= 3);
 
             throw new TestRollback();
         });
