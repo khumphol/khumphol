@@ -30,7 +30,7 @@ $hold = LedgerService::holdDays();
 <div class="card table-wrap"><h2>รายการ & การแบ่งรายได้ (snapshot ณ วันขาย)</h2><table>
   <tr><th>คอร์ส</th><th class="num">ราคา</th><th class="num">ส่วนลด</th><th class="num">จ่าย</th><th class="num">ค่าธรรมเนียม</th><th class="num">สุทธิ</th><th class="num">อัตรา</th><th class="num">แพลตฟอร์ม</th><th class="num">ผู้สอน</th><th></th></tr>
   <?php foreach($items as $it): ?>
-  <tr><td><?= h($it['title']) ?><div class="small muted"><?= h($it['teacher']) ?></div></td>
+  <tr><td style="min-width:180px"><?= h($it['title']) ?><div class="small muted"><?= h($it['teacher']) ?></div></td>
       <td class="num"><?= baht($it['list_price']) ?></td><td class="num"><?= baht($it['discount']) ?><?= $it['coupon_owner'] !== 'none' ? '<div class="small muted">'.($it['coupon_owner'] === 'platform' ? 'แพลตฟอร์ม' : 'ผู้สอน').'</div>' : '' ?></td>
       <td class="num"><?= baht($it['paid_amount']) ?></td><td class="num"><?= baht($it['gateway_fee']) ?></td><td class="num"><?= baht($it['net_amount']) ?></td>
       <td class="num"><?= $it['platform_rate'] !== null ? h($it['platform_rate']).'%' : '—' ?><div class="small muted"><?= h($it['rule_id'] ? 'กฎ #'.$it['rule_id'].' ('.$it['rule_scope'].')' : ($it['platform_rate'] !== null ? 'ค่าสำรอง' : '')) ?></div></td>

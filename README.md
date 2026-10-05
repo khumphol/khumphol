@@ -23,6 +23,7 @@ Open <http://localhost:8888/2026/aleanor/aleanor_cloud/>
 Test accounts (password `test1234`): `admin@aleanor.test`, `teacher@aleanor.test`, `student@aleanor.test`.
 
 `bash sql/install.sh --reset` drops the database and recreates it.
+`php sql/demo.php` adds demo data: 2 more published courses, a 20% rate on the Excel course, and 2 sample sales with their revenue split. Screenshots are in `docs/screenshots/`.
 
 **Payments:** with `APP_ENV=dev`, the default is a **mock** gateway, so you can test the full flow without keys. For production, set `APP_ENV=prod` in `config.local.php`. Then choose Omise or Stripe under Admin → Settings and set the Omise/Stripe webhook to the URL shown on that page.
 

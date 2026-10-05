@@ -24,7 +24,7 @@ $link = function($p) use($AREA){ return $AREA === 'admin' ? au($p) : iu($p); };
 <title><?= h(($TITLE ?? '') !== '' ? $TITLE.' · '.$siteName : $siteName) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="<?= h(asset('assets/app.css')) ?>">
+<link rel="stylesheet" href="<?= h(asset('assets/app.css').'?v='.filemtime(dirname(__DIR__).'/assets/app.css')) ?>">
 </head>
 <body>
 <header class="topbar"><div class="container">
