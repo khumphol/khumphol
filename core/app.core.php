@@ -178,3 +178,18 @@ function lesson_type_label($type){
     $m = ['video' => 'วิดีโอ', 'text' => 'บทความ', 'indy' => 'Indy', 'doc' => 'Docs', 'playground' => 'Playground'];
     return $m[$type] ?? $type;
 }
+
+// ── กันเดารหัสผ่าน: 5 ครั้ง/อีเมล หรือ 30 ครั้ง/IP ภายใน 15 นาที ──
+function login_throttled($email){
+    $since = date('Y-m-d H:i:s', time() - 900);
+    $eh = hash('sha256', mb_strtolower(trim($email)));
+    $ip = substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+    return (int)db_val("SELECT COUNT(*) FROM login_attempts WHERE email_hash = ? AND created_at > ?", [$eh, $since]) >= 5
+        || (int)db_val("SELECT COUNT(*) FROM login_attempts WHERE ip = ? AND created_at > ?", [$ip, $since]) >= 30;
+}
+function login_failed($email){
+    db_insert("INSERT INTO login_attempts (email_hash, ip, created_at) VALUES (?,?,?)",
+        [hash('sha256', mb_strtolower(trim($email))), substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45), now()]);
+    if(mt_rand(1, 50) === 1) db_write("DELETE FROM login_attempts WHERE created_at < ?", [date('Y-m-d H:i:s', time() - 86400)]);
+}
+function login_clear($email){ db_write("DELETE FROM login_attempts WHERE email_hash = ?", [hash('sha256', mb_strtolower(trim($email)))]); }

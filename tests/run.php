@@ -85,6 +85,21 @@ section('PayoutService::withholding()');
 eq('1000 × 3% = 30 → 970', ['withholding' => '30.00', 'net' => '970.00'], PayoutService::withholding('1000', 3));
 eq('อัตรา 0', ['withholding' => '0.00', 'net' => '674.45'], PayoutService::withholding('674.45', 0));
 
+section('IntegrationService — Playground ticket / VC JWT (รูปแบบเดียวกับ aleanor_ai)');
+$sec = 'test-secret';
+$t = IntegrationService::pgIssueTicket(42, 90, $sec, 1000000);
+eq('ticket ถูกต้อง → user 42', 42, IntegrationService::pgVerifyTicket($t, $sec, 1000010));
+eq('ticket หมดอายุ (>90 วิ) → 0', 0, IntegrationService::pgVerifyTicket($t, $sec, 1000091));
+eq('secret ผิด → 0', 0, IntegrationService::pgVerifyTicket($t, 'other', 1000010));
+list($pp, $sg) = explode('.', $t);
+$forged = IntegrationService::b64(str_replace('"u":42', '"u":1', IntegrationService::unb64($pp))).'.'.$sg;
+eq('แก้ payload (เปลี่ยน user) → 0', 0, IntegrationService::pgVerifyTicket($forged, $sec, 1000010));
+eq('k เป็นรหัส 32 ตัวตามที่ Playground เก็บ', 32, strlen(json_decode(IntegrationService::unb64($pp), true)['k']));
+$jwt = IntegrationService::jwt(['iss' => 'cloud', 'sub' => 'cloud-1', 'exp' => 1], $sec);
+list($jh, $jp, $js) = explode('.', $jwt);
+eq('JWT HS256 ลายเซ็นตรวจได้', true, hash_equals(IntegrationService::b64(hash_hmac('sha256', "$jh.$jp", $sec, true)), $js));
+eq('JWT header alg', 'HS256', json_decode(IntegrationService::unb64($jh), true)['alg']);
+
 // ── 3) integration (ฐานข้อมูล, rollback ทิ้ง) ──
 if(!in_array('--unit', $argv, true)){
     section('integration — checkout → ledger → refund (rollback ทิ้ง)');
@@ -229,6 +244,14 @@ if(!in_array('--unit', $argv, true)){
             eq('ลบ override → กลับไปตามค่าเริ่มต้น', false, PermissionService::can($tid, 'coupons'));
             setting_set('mod_indy', '0');
             eq('ปิดโมดูล indy → ไม่มีใครใช้ lesson.indy ได้', false, PermissionService::can($tid, 'lesson.indy'));
+            // ── กันเดารหัสผ่าน ──
+            $em = 'throttle_'.uniqid().'@t.test';
+            for($i = 0; $i < 4; $i++) login_failed($em);
+            eq('พลาด 4 ครั้ง → ยังไม่ล็อก', false, login_throttled($em));
+            login_failed($em);
+            eq('พลาดครั้งที่ 5 → ล็อก 15 นาที', true, login_throttled($em));
+            login_clear($em);
+            eq('ล็อกอินสำเร็จแล้วล้างตัวนับ', false, login_throttled($em));
             eq('เปลี่ยนสิทธิ์ลง audit_logs', true, (int)db_val("SELECT COUNT(*) FROM audit_logs WHERE action = 'permission_set'") >= 3);
 
             throw new TestRollback();

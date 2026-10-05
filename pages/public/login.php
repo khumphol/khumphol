@@ -4,22 +4,22 @@ if(current_user()) redirect(u('my-learning'));
 $err = '';
 if(is_post()){
     require_csrf();
-    // กันเดารหัส: เกิน 5 ครั้งใน 10 นาทีต่อ session ให้รอ
-    $_SESSION['login_fail'] = array_filter($_SESSION['login_fail'] ?? [], function($t){ return $t > time() - 600; });
-    if(count($_SESSION['login_fail']) >= 5){ $err = 'ลองผิดหลายครั้งเกินไป กรุณารอสักครู่'; }
+    // กันเดารหัส: นับในฐานข้อมูลต่ออีเมล/IP (login_throttled)
+    if(login_throttled(post('email'))){ $err = 'ลองผิดหลายครั้งเกินไป กรุณารอ 15 นาทีแล้วลองใหม่'; }
     else {
         $u = db_one("SELECT * FROM users WHERE email = ? AND status = 1", [mb_strtolower(post('email'))]);
         if($u && shVerifyPassword(post('password'), $u['password_hash'])){
             if(shPasswordNeedsRehash($u['password_hash']))
                 db_write("UPDATE users SET password_hash = ? WHERE id = ?", [shHashPassword(post('password')), (int)$u['id']]);
+            login_clear(post('email'));
             login_user($u['id']);
-            $to = $_SESSION['after_login'] ?? ''; unset($_SESSION['after_login'], $_SESSION['login_fail']);
+            $to = $_SESSION['after_login'] ?? ''; unset($_SESSION['after_login']);
             // กลับได้เฉพาะ path ภายในแอป (กัน open redirect)
             $ok = $to !== '' && strpos($to, app_base()) === 0 && strpos($to, '//') === false
                && ((int)$u['is_admin'] === 1 || strpos($to, app_base().'admin/') !== 0);   // ไม่ใช่แอดมิน อย่าพากลับไปหน้า 403
             redirect($ok ? $to : u('my-learning'));
         }
-        $_SESSION['login_fail'][] = time();
+        login_failed(post('email'));
         $err = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
     }
 }
