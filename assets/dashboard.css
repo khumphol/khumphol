@@ -514,3 +514,4 @@ form.inline{display:inline}
   .tgl-track::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.35)}
   .tgl input:checked + .tgl-track{background:var(--primary)}
   .tgl input:checked + .tgl-track::after{transform:translateX(18px)}
+.sidebar-nav{overflow-x:hidden} .nav-bottom form .nav-item{width:100%}
