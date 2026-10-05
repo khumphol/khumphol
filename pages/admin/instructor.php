@@ -17,6 +17,7 @@ if(is_post()){
         db_write("UPDATE instructor_profiles SET status = ?, review_note = ?, reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE user_id = ?",
             [$map[$a], mb_substr(post('note'), 0, 500), current_user_id(), now(), now(), $uid]);
         audit('instructor_'.$a, 'instructor', $uid, ['status' => $p['status']], ['status' => $map[$a], 'note' => post('note')]);
+        MailService::instructorStatus($uid, $map[$a], post('note'));
         flash('อัปเดตสถานะผู้สอนแล้ว');
     }
     if($a === 'adjust'){
@@ -61,4 +62,5 @@ $rateScope = 'instructor'; $rateTarget = $uid; $rateEffective = RevenueShareServ
     <?php if(!$courses): ?><p class="muted small">ยังไม่มีคอร์ส</p><?php endif; ?>
   </div>
 </div>
+<p class="small"><a href="<?= h(au('permissions')) ?>"><i class="fi fi-rr-shield-check"></i> ตั้งสิทธิ์การใช้งานของผู้สอนคนนี้</a></p>
 <div class="mt"><?php require __DIR__.'/_rate.php'; ?></div>

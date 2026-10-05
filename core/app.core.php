@@ -164,3 +164,17 @@ function video_embed($url){
         return 'https://player.vimeo.com/video/'.$m[1];
     return null;
 }
+
+/** ชนิดบทเรียนที่ผู้สอนคนนี้สร้างได้ (ตามสิทธิ์ + โมดูล) */
+function lesson_types_for($uid){
+    $t = [];
+    if(PermissionService::can($uid, 'lesson.video')){ $t['video'] = 'วิดีโอ'; $t['text'] = 'บทความ'; }
+    if(PermissionService::can($uid, 'lesson.indy'))       $t['indy'] = 'Aleanor Indy (วิดีโอเลือกเส้นทาง)';
+    if(PermissionService::can($uid, 'docs'))              $t['doc'] = 'เอกสาร Aleanor Docs';
+    if(PermissionService::can($uid, 'lesson.playground')) $t['playground'] = 'Aleanor Playground';
+    return $t;
+}
+function lesson_type_label($type){
+    $m = ['video' => 'วิดีโอ', 'text' => 'บทความ', 'indy' => 'Indy', 'doc' => 'Docs', 'playground' => 'Playground'];
+    return $m[$type] ?? $type;
+}

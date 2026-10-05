@@ -15,4 +15,7 @@ run_area('public', [
     'register'          => 'public/register.php',
     'logout'            => 'public/logout.php',
     'become-instructor' => 'public/become-instructor.php',
+    'cart'              => 'public/cart.php',
+    'receipt'           => 'public/receipt.php',
+    'certificate'       => 'public/certificate.php',
 ], 'home');

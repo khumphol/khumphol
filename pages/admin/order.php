@@ -7,15 +7,18 @@ if(is_post() && post('action') === 'refund'){
     require_csrf();
     try {
         if(post('reason') === '') throw new RuntimeException('กรุณาระบุเหตุผลการคืนเงิน');
-        OrderService::refundItem((int)post('item_id'), post('reason'));
-        flash('บันทึกการคืนเงินแล้ว — อย่าลืมคืนเงินจริงที่หน้า '.($o['gateway'] ?: 'gateway'));
+        $via = post('via_gateway') === '1';
+        OrderService::refundItem((int)post('item_id'), post('reason'), post('amount') === '' ? null : post('amount'), $via);
+        flash($via ? 'คืนเงินผ่าน '.($o['gateway'] ?: 'gateway').' และบันทึกแล้ว' : 'บันทึกการคืนเงินแล้ว — อย่าลืมคืนเงินจริงที่หน้า '.($o['gateway'] ?: 'gateway'));
     } catch(RuntimeException $e){ flash($e->getMessage(), 'danger'); }
     redirect(au('order', ['id' => $o['id']]));
 }
-$items = db_all("SELECT oi.*, c.title, COALESCE(ip.display_name, u.name) AS teacher, r.scope AS rule_scope, rf.reason AS refund_reason
+$items = db_all("SELECT oi.*, c.title, COALESCE(ip.display_name, u.name) AS teacher, r.scope AS rule_scope
                  FROM order_items oi JOIN courses c ON c.id = oi.course_id JOIN users u ON u.id = oi.instructor_id
                  LEFT JOIN instructor_profiles ip ON ip.user_id = oi.instructor_id LEFT JOIN revenue_share_rules r ON r.id = oi.rule_id
-                 LEFT JOIN refunds rf ON rf.order_item_id = oi.id WHERE oi.order_id = ?", [(int)$o['id']]);
+                 WHERE oi.order_id = ?", [(int)$o['id']]);
+$refunds = db_all("SELECT rf.*, c.title, u.name by_name FROM refunds rf JOIN order_items oi ON oi.id = rf.order_item_id JOIN courses c ON c.id = oi.course_id
+                   LEFT JOIN users u ON u.id = rf.created_by WHERE rf.order_id = ? ORDER BY rf.id", [(int)$o['id']]);
 $events = db_all("SELECT * FROM payment_events WHERE order_id = ? ORDER BY id", [(int)$o['id']]);
 $hold = LedgerService::holdDays();
 ?>
@@ -35,14 +38,25 @@ $hold = LedgerService::holdDays();
       <td class="num"><?= baht($it['paid_amount']) ?></td><td class="num"><?= baht($it['gateway_fee']) ?></td><td class="num"><?= baht($it['net_amount']) ?></td>
       <td class="num"><?= $it['platform_rate'] !== null ? h($it['platform_rate']).'%' : '—' ?><div class="small muted"><?= h($it['rule_id'] ? 'กฎ #'.$it['rule_id'].' ('.$it['rule_scope'].')' : ($it['platform_rate'] !== null ? 'ค่าสำรอง' : '')) ?></div></td>
       <td class="num"><?= baht($it['platform_amount']) ?></td><td class="num"><strong><?= baht($it['instructor_amount']) ?></strong></td>
-      <td class="right"><?php if($it['refunded_at']): ?><?= status_badge('refunded') ?><div class="small muted"><?= h($it['refund_reason']) ?></div>
-        <?php elseif(in_array($o['status'], ['paid', 'partially_refunded'], true)): ?>
-        <form method="post" onsubmit="return confirm('บันทึกการคืนเงินรายการนี้? ผู้เรียนจะถูกยกเลิกสิทธิ์ และหักรายได้ผู้สอนคืน')"><?= csrf_field() ?>
+      <td class="right" style="min-width:230px"><?php if($it['refunded_at']): ?><?= status_badge('refunded') ?>
+        <?php elseif(in_array($o['status'], ['paid', 'partially_refunded'], true)):
+          $left = (float)$it['paid_amount'] - (float)$it['refunded_amount']; ?>
+        <?php if((float)$it['refunded_amount'] > 0): ?><div class="small">คืนแล้ว <?= baht($it['refunded_amount']) ?></div><?php endif; ?>
+        <form method="post" onsubmit="return confirm('ยืนยันคืนเงิน? (คืนครบ = ยกเลิกสิทธิ์เรียน) ระบบจะหักรายได้ผู้สอนตามสัดส่วน')"><?= csrf_field() ?>
           <input type="hidden" name="action" value="refund"><input type="hidden" name="item_id" value="<?= (int)$it['id'] ?>">
-          <input type="text" name="reason" placeholder="เหตุผล" required style="min-width:140px"><button class="btn btn-sm btn-danger mt">คืนเงิน</button></form><?php endif; ?></td></tr>
+          <input type="number" name="amount" step="0.01" min="0.01" max="<?= h($left) ?>" placeholder="จำนวน (ว่าง = ทั้งหมด <?= money($left) ?>)">
+          <input type="text" name="reason" placeholder="เหตุผล" required style="margin-top:.35rem">
+          <?php if($o['gateway'] && $o['gateway'] !== 'coupon'): ?><label class="check small" style="margin:.35rem 0"><input type="checkbox" name="via_gateway" value="1" checked> คืนเงินผ่าน <?= h($o['gateway']) ?> อัตโนมัติ</label><?php endif; ?>
+          <button class="btn btn-sm btn-danger">คืนเงิน</button></form><?php endif; ?></td></tr>
   <?php endforeach; ?>
 </table>
-<p class="small muted">การคืนเงินบันทึกในระบบ + หักบัญชีผู้สอน (ภายใน <?= $hold ?> วันจะหักจากยอดพักเงิน) — ยอดเงินจริงต้องคืนที่หน้าจัดการของ gateway</p></div>
+<p class="small muted">คืนบางส่วนได้หลายครั้ง · หักรายได้ผู้สอนตามสัดส่วน (ภายใน <?= $hold ?> วันหักจากยอดพักเงิน) · ถ้าไม่ติ๊ก "คืนผ่าน gateway" ต้องคืนเงินจริงเองที่หน้าจัดการของ gateway</p></div>
+<?php if($refunds): ?><div class="card table-wrap"><h2>ประวัติการคืนเงิน</h2><table>
+  <tr><th>เวลา</th><th>คอร์ส</th><th class="num">คืนลูกค้า</th><th class="num">หักผู้สอน</th><th>ช่องทาง</th><th>เหตุผล</th><th>โดย</th></tr>
+  <?php foreach($refunds as $rf): ?><tr><td class="small nowrap"><?= h($rf['created_at']) ?></td><td><?= h($rf['title']) ?></td><td class="num"><?= baht($rf['amount']) ?></td>
+    <td class="num"><?= baht($rf['instructor_reversal']) ?></td><td class="small"><?= $rf['via_gateway'] ? 'gateway '.h($rf['gateway_refund_ref']) : 'บันทึกอย่างเดียว' ?></td>
+    <td class="small"><?= h($rf['reason']) ?></td><td class="small muted"><?= h($rf['by_name']) ?></td></tr><?php endforeach; ?>
+</table></div><?php endif; ?>
 <?php if($events): ?><div class="card table-wrap"><h2>เหตุการณ์ชำระเงิน</h2><table>
   <tr><th>เวลา</th><th>เหตุการณ์</th><th>อ้างอิง</th><th>ข้อมูล</th></tr>
   <?php foreach($events as $e): ?><tr><td class="small nowrap"><?= h($e['created_at']) ?></td><td><?= h($e['event']) ?></td><td class="small"><?= h($e['ref']) ?></td><td class="small muted"><code><?= h($e['payload']) ?></code></td></tr><?php endforeach; ?>

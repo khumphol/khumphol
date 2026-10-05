@@ -27,6 +27,8 @@ if($enrolled){
     if(is_post() && post('action') === 'complete'){
         require_csrf();
         db_write("UPDATE lesson_progress SET completed_at = COALESCE(completed_at, ?) WHERE user_id = ? AND lesson_id = ?", [now(), $uid, (int)$lesson['id']]);
+        $cert = CertificateService::issueIfEligible($uid, (int)$c['id']);
+        if($cert && get('cert_shown') === ''){ flash('ยินดีด้วย! คุณเรียนจบคอร์สแล้ว — รับใบประกาศได้ที่ปุ่มด้านขวา'); }
         // ไปบทถัดไป
         $ids = array_column($all, 'id'); $i = array_search($lesson['id'], $ids);
         redirect(u('learn', ['course' => $c['id'], 'lesson' => $ids[$i + 1] ?? $lesson['id']]));
@@ -43,16 +45,33 @@ if($enrolled){
 }
 $pct = count($all) ? round(count($done) * 100 / count($all)) : 0;
 $embed = $lesson['video_url'] !== '' ? video_embed($lesson['video_url']) : null;
+$cert = $enrolled ? CertificateService::forUser($uid, (int)$c['id']) : null;
+$vcOpen = (int)$c['vc_enabled'] && IntegrationService::vcEnabled() && PermissionService::can($c['instructor_id'], 'vc') && ($enrolled || $isOwner);
+// บทเรียนจากโมดูลที่ถูกปิด → ไม่แสดงเนื้อหา
+$modOff = ($lesson['type'] === 'indy' && !PermissionService::moduleOn('indy')) || ($lesson['type'] === 'doc' && !PermissionService::moduleOn('docs'))
+       || ($lesson['type'] === 'playground' && !IntegrationService::pgEnabled());
 $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND user_id = ?", [(int)$c['id'], $uid]) : null;
 ?>
 <div class="learn">
   <div>
     <div class="small muted"><a href="<?= h(u('course', ['slug' => $c['slug']])) ?>"><?= h($c['title']) ?></a></div>
     <h1><?= h($lesson['title']) ?></h1>
-    <?php if($lesson['type'] === 'video' && $lesson['video_url'] !== ''): ?>
+    <?php if($modOff): ?>
+      <div class="card muted">บทเรียนนี้ยังเปิดใช้งานไม่ได้ในขณะนี้</div>
+    <?php elseif($lesson['type'] === 'video' && $lesson['video_url'] !== ''): ?>
       <div class="player">
         <?php if($embed): ?><iframe src="<?= h($embed) ?>" allow="accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
         <?php else: ?><video src="<?= h($lesson['video_url']) ?>" controls controlsList="nodownload" preload="metadata"></video><?php endif; ?>
+      </div>
+    <?php elseif($lesson['type'] === 'indy' && class_exists('IndyService')): ?>
+      <?= IndyService::renderForLesson((int)$lesson['ref_id'], (int)$uid) ?>
+    <?php elseif($lesson['type'] === 'doc' && class_exists('DocsService')): ?>
+      <div class="card"><?= DocsService::renderForLesson((int)$lesson['ref_id']) ?></div>
+    <?php elseif($lesson['type'] === 'playground'): ?>
+      <div class="card" style="text-align:center;padding:2.5rem">
+        <div style="font-size:2.4rem">🧪</div><h2>กิจกรรม Aleanor Playground</h2>
+        <p class="muted">เปิดในแท็บใหม่ — ระบบจะลงชื่อเข้าใช้ให้อัตโนมัติ</p>
+        <a class="btn btn-primary" href="<?= h(IntegrationService::pgLessonUrl($lesson['ref_key'])) ?>" target="_blank" rel="noopener">เริ่มกิจกรรม ↗</a>
       </div>
     <?php endif; ?>
     <?php if(trim((string)$lesson['content']) !== ''): ?><div class="card mt prose"><?= h($lesson['content']) ?></div><?php endif; ?>
@@ -72,6 +91,8 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
   </div>
   <aside class="card curriculum">
     <?php if($enrolled): ?><div class="small muted">ความคืบหน้า <?= $pct ?>%</div><div class="progress"><span style="width:<?= $pct ?>%"></span></div><?php endif; ?>
+    <?php if($cert): ?><a class="btn btn-primary btn-block mt" style="color:#fff;justify-content:center" href="<?= h(u('certificate', ['serial' => $cert['serial']])) ?>">🎓 ใบประกาศของฉัน</a><?php endif; ?>
+    <?php if($vcOpen): ?><a class="btn btn-block mt" style="justify-content:center" href="<?= h(asset('vc.php').'?course='.(int)$c['id']) ?>" target="_blank">🧑‍🏫 เข้าห้องเรียนเสมือน ↗</a><?php endif; ?>
     <?php foreach($sections as $s): ?>
       <div class="sec"><?= h($s['title']) ?></div>
       <?php foreach($all as $l): if((int)$l['section_id'] !== (int)$s['id']) continue;

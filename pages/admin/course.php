@@ -18,6 +18,7 @@ if(is_post()){
         db_write("UPDATE courses SET status = ?, review_note = ?, reviewed_by = ?, published_at = IF(? = 'published', COALESCE(published_at, ?), published_at), updated_at = ? WHERE id = ?",
             [$to, $note, current_user_id(), $to, now(), now(), (int)$c['id']]);
         audit('course_'.$a, 'course', (int)$c['id'], ['status' => $c['status']], ['status' => $to, 'note' => $note]);
+        MailService::courseStatus((int)$c['id'], $to, $note);
         flash('อัปเดตสถานะคอร์สแล้ว');
     }
     redirect($back);

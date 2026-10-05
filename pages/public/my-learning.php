@@ -20,12 +20,16 @@ $orders = db_all("SELECT o.*, (SELECT GROUP_CONCAT(c.title SEPARATOR ', ') FROM 
   </a>
 <?php endforeach; ?>
 </div>
+<?php $certs = db_all("SELECT * FROM certificates WHERE user_id = ? AND revoked_at IS NULL ORDER BY issued_at DESC", [$uid]); if($certs): ?>
+<div class="card mt2"><h2>ใบประกาศของฉัน</h2><?php foreach($certs as $ct): ?><div class="row between" style="padding:.35rem 0"><span>🎓 <?= h($ct['course_title']) ?></span>
+  <a class="small" href="<?= h(u('certificate', ['serial' => $ct['serial']])) ?>"><?= h($ct['serial']) ?></a></div><?php endforeach; ?></div>
+<?php endif; ?>
 <?php if($orders): ?>
 <div class="card mt2"><h2>ประวัติคำสั่งซื้อ</h2><div class="table-wrap"><table>
   <tr><th>เลขที่</th><th>คอร์ส</th><th class="num">ยอด</th><th>สถานะ</th><th>วันที่</th></tr>
   <?php foreach($orders as $o): ?>
   <tr><td class="nowrap"><?= h($o['order_no']) ?></td><td><?= h($o['titles']) ?></td><td class="num"><?= baht($o['total']) ?></td>
-      <td><?= status_badge($o['status']) ?> <?php if($o['status'] === 'pending'): ?><a class="small" href="<?= h(u('pay-return', ['order' => $o['order_no']])) ?>">ตรวจสอบ</a><?php endif; ?></td>
+      <td><?= status_badge($o['status']) ?> <?php if($o['status'] === 'pending'): ?><a class="small" href="<?= h(u('pay-return', ['order' => $o['order_no']])) ?>">ตรวจสอบ</a><?php elseif($o['paid_at']): ?><a class="small" href="<?= h(u('receipt', ['order' => $o['order_no']])) ?>">ใบเสร็จ</a><?php endif; ?></td>
       <td class="small muted nowrap"><?= h($o['created_at']) ?></td></tr>
   <?php endforeach; ?>
 </table></div></div>

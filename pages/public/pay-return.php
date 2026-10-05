@@ -19,6 +19,7 @@ $item = db_one("SELECT oi.course_id, c.title, c.slug FROM order_items oi JOIN co
     <div style="font-size:2.5rem">🎉</div><h1>ชำระเงินสำเร็จ</h1>
     <p class="muted"><?= h($item['title']) ?> · <?= baht($o['total']) ?></p>
     <a class="btn btn-primary" href="<?= h(u('learn', ['course' => $item['course_id']])) ?>">เริ่มเรียนเลย</a>
+    <a class="btn" href="<?= h(u('receipt', ['order' => $o['order_no']])) ?>">ใบเสร็จ</a>
   <?php elseif($o['status'] === 'pending'): ?>
     <h1>กำลังรอยืนยันการชำระเงิน</h1>
     <p class="muted">ระบบจะเปิดสิทธิ์เรียนให้อัตโนมัติเมื่อได้รับการยืนยันจากผู้ให้บริการ</p>

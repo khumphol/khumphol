@@ -9,12 +9,13 @@ $students = (int)db_val("SELECT COUNT(DISTINCT e.user_id) FROM enrollments e JOI
 $recent = db_all("SELECT oi.*, o.order_no, o.paid_at, c.title FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN courses c ON c.id = oi.course_id
                   WHERE oi.instructor_id = ? AND o.paid_at IS NOT NULL ORDER BY o.paid_at DESC LIMIT 10", [$uid]);
 ?>
-<h1>สวัสดี <?= h(current_user()['instructor_name']) ?></h1>
-<div class="grid g4 mb">
-  <div class="card stat"><div class="label">รายได้รอปล่อย (พักเงิน)</div><div class="value"><?= baht($bal['held']) ?></div></div>
-  <div class="card stat"><div class="label">ยอดถอนได้</div><div class="value"><?= baht($bal['available']) ?></div></div>
-  <div class="card stat"><div class="label">ยอดขาย (รายการ)</div><div class="value"><?= (int)$stats['sales'] ?></div></div>
-  <div class="card stat"><div class="label">ผู้เรียน</div><div class="value"><?= $students ?></div></div>
+<div class="page-header"><div><h1><i class="fi fi-rr-home"></i> สวัสดี <?= h(current_user()['instructor_name']) ?></h1><p>ภาพรวมการสอนและรายได้ของคุณ</p></div>
+  <?php if(PermissionService::can($uid, 'courses')): ?><a class="btn btn-primary" href="<?= h(iu('courses')) ?>"><i class="fi fi-rr-add"></i> สร้างคอร์ส</a><?php endif; ?></div>
+<div class="stat-grid">
+  <?php foreach([['รายได้รอปล่อย (พักเงิน)', baht($bal['held']), 'fi-rr-hourglass-end', '#f59e0b'], ['ยอดถอนได้', baht($bal['available']), 'fi-rr-sack-dollar', '#10b981'],
+                 ['ยอดขาย (รายการ)', (int)$stats['sales'], 'fi-rr-shopping-cart', '#6366f1'], ['ผู้เรียน', $students, 'fi-rr-graduation-cap', '#06b6d4']] as $t): ?>
+  <div class="stat-card"><div><div class="stat-label"><?= h($t[0]) ?></div><div class="stat-value"><?= h($t[1]) ?></div></div><div class="stat-icon" style="background:<?= $t[3] ?>1a;color:<?= $t[3] ?>"><i class="fi <?= $t[2] ?>"></i></div></div>
+  <?php endforeach; ?>
 </div>
 <div class="card">
   <div class="row between"><h2>ยอดขายล่าสุด</h2><a href="<?= h(iu('earnings')) ?>" class="small">ดูทั้งหมด →</a></div>

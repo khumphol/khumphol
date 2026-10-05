@@ -45,6 +45,7 @@ $rating = db_one("SELECT AVG(rating) avg, COUNT(*) n FROM reviews WHERE course_i
         <?php endforeach; ?>
       <?php endforeach; ?>
     </div>
+    <?php if((int)$c['vc_enabled'] && IntegrationService::vcEnabled()): ?><div class="card"><strong>🧑‍🏫 มีห้องเรียนเสมือน (Aleanor VC)</strong> <span class="muted small">เข้าได้หลังลงทะเบียน</span></div><?php endif; ?>
     <?php if($c['bio']): ?><div class="card"><h2>เกี่ยวกับผู้สอน</h2><strong><?= h($c['teacher']) ?></strong> <span class="muted"><?= h($c['headline']) ?></span><p class="prose"><?= h($c['bio']) ?></p></div><?php endif; ?>
   </div>
   <div class="card buybox">
@@ -58,6 +59,8 @@ $rating = db_one("SELECT AVG(rating) avg, COUNT(*) n FROM reviews WHERE course_i
       <form method="post"><?= csrf_field() ?><input type="hidden" name="action" value="enroll_free"><button class="btn btn-primary btn-block">ลงทะเบียนเรียนฟรี</button></form>
     <?php else: ?>
       <a class="btn btn-primary btn-block" href="<?= h(u('checkout', ['course' => $c['id']])) ?>">ซื้อคอร์สนี้</a>
+      <?php if($me): ?><form method="post" action="<?= h(u('cart')) ?>" class="mt"><?= csrf_field() ?><input type="hidden" name="action" value="add"><input type="hidden" name="back" value="course"><input type="hidden" name="course" value="<?= (int)$c['id'] ?>">
+        <button class="btn btn-block"><?= db_val("SELECT id FROM cart_items WHERE user_id = ? AND course_id = ?", [(int)$me['id'], (int)$c['id']]) ? '✓ อยู่ในตะกร้าแล้ว' : 'ใส่ตะกร้า' ?></button></form><?php endif; ?>
     <?php endif; ?>
   </div>
 </div>
