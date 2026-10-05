@@ -1,6 +1,5 @@
 <?php
 // พื้นที่ผู้สอน — /instructor/index.php?p=...  (เมนู/หน้าถูกกรองด้วยสิทธิ์ที่แอดมินกำหนด — PermissionService)
-session_start();
 require dirname(__DIR__).'/core/bootstrap.php';
 require_login();
 if(!is_instructor()){ flash('พื้นที่นี้สำหรับผู้สอนที่ได้รับอนุมัติแล้ว', 'warning'); redirect(u('become-instructor')); }

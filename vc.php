@@ -1,6 +1,5 @@
 <?php
 // เข้าห้องเรียนเสมือน (Aleanor VC) ของคอร์ส — ตรวจสิทธิ์แล้วส่ง JWT อายุ 5 นาทีไปที่ VC gateway
-session_start();
 require __DIR__.'/core/bootstrap.php';
 require_login();
 $c = db_one("SELECT * FROM courses WHERE id = ?", [(int)get('course')]);

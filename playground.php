@@ -1,7 +1,6 @@
 <?php
 // SSO ฝั่งผู้ออก ticket ให้ Aleanor Playground (แบบเดียวกับ aleanor_ai/playground.php)
 // รับ ?return=<callback ของ Playground>&state=… → ล็อกอินอยู่ → redirect กลับพร้อม ticket อายุ 90 วินาที
-session_start();
 require __DIR__.'/core/bootstrap.php';
 function pgFail($m){ http_response_code(400); exit('<!doctype html><meta charset="utf-8"><body style="font-family:Sarabun,system-ui;padding:3rem;text-align:center">'.h($m).'<br><br><a href="index.php">กลับหน้าแรก</a>'); }
 if(!IntegrationService::pgEnabled()) pgFail('ยังไม่ได้เปิดใช้การเชื่อมต่อ Playground');

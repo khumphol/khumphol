@@ -65,6 +65,9 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
       </div>
     <?php elseif($lesson['type'] === 'indy' && class_exists('IndyService')): ?>
       <?= IndyService::renderForLesson((int)$lesson['ref_id'], (int)$uid) ?>
+      <?php if($enrolled && !isset($done[(int)$lesson['id']])): ?>
+      <script>document.addEventListener('indy:end', function(){ var b = document.querySelector('#completeForm button'); if(b){ b.textContent = '🎉 จบเส้นทางแล้ว — กดเพื่อบันทึกว่าเรียนจบ'; b.scrollIntoView({behavior:'smooth', block:'center'}); } });</script>
+      <?php endif; ?>
     <?php elseif($lesson['type'] === 'doc' && class_exists('DocsService')): ?>
       <div class="card"><?= DocsService::renderForLesson((int)$lesson['ref_id']) ?></div>
     <?php elseif($lesson['type'] === 'playground'): ?>
@@ -76,7 +79,7 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
     <?php endif; ?>
     <?php if(trim((string)$lesson['content']) !== ''): ?><div class="card mt prose"><?= h($lesson['content']) ?></div><?php endif; ?>
     <?php if($enrolled): ?>
-      <form method="post" class="mt"><?= csrf_field() ?><input type="hidden" name="action" value="complete">
+      <form method="post" class="mt" id="completeForm"><?= csrf_field() ?><input type="hidden" name="action" value="complete">
         <button class="btn btn-primary"><?= isset($done[(int)$lesson['id']]) ? '✓ เรียนแล้ว — ไปบทถัดไป' : 'ทำเครื่องหมายว่าเรียนจบ' ?></button></form>
       <div class="card mt">
         <h2>รีวิวคอร์สนี้</h2>

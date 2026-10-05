@@ -1,6 +1,5 @@
 <?php
 // หน้าบ้าน (public) — index.php?p=...
-session_start();
 require __DIR__.'/core/bootstrap.php';
 run_area('public', [
     'home'              => 'public/home.php',

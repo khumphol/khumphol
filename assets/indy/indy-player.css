@@ -1,0 +1,46 @@
+/* Aleanor Indy player — พอร์ตจาก aleanor_ai/pages/course/view-course.php (.indy-stage/.indy-choices) */
+.indy-player { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #020617; border-radius: 12px; overflow: hidden; color: #fff; font-family: inherit; }
+.indy-player .indy-stage { position: absolute; inset: 0; }
+.indy-player video, .indy-player iframe { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+.indy-player .indy-novideo { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .4rem; color: #94a3b8; font-size: .9rem; }
+.indy-player .indy-novideo i { font-size: 2.2rem; opacity: .5; }
+
+.indy-player .indy-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 4; display: flex; align-items: center; gap: 8px;
+  padding: .55rem .9rem; font-size: .8rem; background: linear-gradient(180deg, rgba(2,6,23,.7), transparent); pointer-events: none; }
+.indy-player .indy-bar b { font-weight: 700; }
+.indy-player .indy-bar span { opacity: .75; }
+
+.indy-player .indy-choices {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  padding: 2.2rem 1.25rem 1.1rem; text-align: center;
+  background: linear-gradient(180deg, transparent, rgba(2,6,23,.82));
+  animation: indyUp .35s ease;
+}
+.indy-player .indy-choices.indy-full { top: 0; display: flex; flex-direction: column; justify-content: center; background: rgba(2,6,23,.82); }
+@keyframes indyUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.indy-player .indy-q { color: #fff; font-weight: 700; font-size: .95rem; margin-bottom: .7rem; text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+.indy-player .indy-q i { margin-right: 6px; }
+.indy-player .indy-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.indy-player .indy-choice {
+  background: rgba(255,255,255,.12); color: #fff; border: 1.5px solid rgba(255,255,255,.45);
+  border-radius: 12px; padding: 10px 22px; font-family: inherit; font-size: .92rem; font-weight: 600;
+  cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: all .2s;
+}
+.indy-player .indy-choice:hover, .indy-player .indy-choice:focus-visible { background: var(--primary, #6366f1); border-color: var(--primary, #6366f1); transform: translateY(-2px); outline: none; }
+.indy-player .indy-choice.indy-primary { background: var(--primary, #6366f1); border-color: var(--primary, #6366f1); }
+
+/* ปุ่มเล่นกลางจอ — ใช้เมื่อเบราว์เซอร์บล็อก autoplay หรือซ่อนแถบควบคุม */
+.indy-player .indy-play { position: absolute; inset: 0; z-index: 3; display: flex; align-items: center; justify-content: center; background: rgba(2,6,23,.35); border: 0; cursor: pointer; color: #fff; }
+.indy-player .indy-play span { width: 68px; height: 68px; border-radius: 50%; background: var(--primary, #6366f1); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 28px rgba(0,0,0,.4); }
+.indy-player .indy-play span::before { content: ''; margin-left: 5px; border-style: solid; border-width: 13px 0 13px 21px; border-color: transparent transparent transparent #fff; }
+
+.indy-player .indy-hint { position: absolute; right: .7rem; bottom: .6rem; z-index: 2; font-size: .7rem; opacity: .6; pointer-events: none; }
+
+.indy-empty { padding: 2.5rem 1rem; text-align: center; color: var(--text-muted, #94a3b8); border: 1px dashed var(--border, #e2e8f0); border-radius: 12px; }
+.indy-empty i { display: block; font-size: 2rem; opacity: .4; margin-bottom: .4rem; }
+
+@media (max-width: 560px){
+  .indy-player .indy-choices { padding: 1.4rem .7rem .7rem; }
+  .indy-player .indy-choice { padding: 7px 14px; font-size: .82rem; }
+  .indy-player .indy-q { font-size: .85rem; margin-bottom: .45rem; }
+}

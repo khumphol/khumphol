@@ -1,0 +1,11 @@
+# วิดีโอ Aleanor Indy — เสิร์ฟเฉพาะไฟล์วิดีโอ ห้ามรันสคริปต์
+Options -Indexes -ExecCGI
+<FilesMatch "\.(?i:php\d?|phtml|phar|pl|py|cgi|sh|html?|svg|js)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+  php_flag engine off
+</IfModule>

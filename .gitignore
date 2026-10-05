@@ -3,3 +3,5 @@ uploads/covers/*
 uploads/slips/*
 !uploads/*/.gitkeep
 .DS_Store
+storage/logs/*
+!storage/logs/.gitkeep

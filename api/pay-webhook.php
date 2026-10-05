@@ -3,7 +3,6 @@
 //   1) ต้องแนบ ?secret=<gw_webhook_secret>
 //   2) ไม่เชื่อ payload — ใช้แค่ ref แล้วถามสถานะจริงจาก API ผู้ให้บริการ
 //   3) idempotent: หาออเดอร์จาก gateway_ref (unique) แล้ว confirmPaid() ล็อกแถว — ยิงซ้ำไม่ลงบัญชีซ้ำ
-session_start();
 header('Content-Type: application/json; charset=utf-8');
 require dirname(__DIR__).'/core/bootstrap.php';
 function wout($code, $a){ http_response_code($code); echo json_encode($a); exit; }

@@ -1,6 +1,5 @@
 <?php
 // หลังบ้านแอดมิน (หน้าตาแบบ aleanor_ai dashboard) — /admin/index.php?p=...
-session_start();
 require dirname(__DIR__).'/core/bootstrap.php';
 require_login();
 if(!is_admin()){ http_response_code(403); exit('403 — สำหรับผู้ดูแลระบบเท่านั้น'); }
