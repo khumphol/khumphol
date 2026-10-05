@@ -1,0 +1,5 @@
+core/config.local.php
+uploads/covers/*
+uploads/slips/*
+!uploads/*/.gitkeep
+.DS_Store

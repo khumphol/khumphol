@@ -1,0 +1,111 @@
+/* Aleanor Cloud — สไตล์รวม (หน้าบ้าน / ผู้สอน / แอดมิน) */
+:root{
+  --bg:#f7f7fb; --card:#fff; --text:#16161d; --muted:#6b6b7b; --border:#e6e6ef;
+  --primary:#5b4bff; --primary-ink:#fff; --primary-soft:#efedff;
+  --green:#0f9d58; --green-soft:#e6f6ed; --amber:#b26b00; --amber-soft:#fff4dd;
+  --red:#d93636; --red-soft:#fdeaea; --gray-soft:#efeff4;
+  --radius:14px; --shadow:0 1px 2px rgba(20,20,40,.04),0 4px 16px rgba(20,20,40,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f0f14; --card:#17171f; --text:#ececf3; --muted:#9a9aab; --border:#2a2a36;
+    --primary:#8b7fff; --primary-soft:#24213f; --green-soft:#11291c; --amber-soft:#2d2410; --red-soft:#311718; --gray-soft:#22222c;
+    --shadow:none;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:15px}
+a{color:var(--primary);text-decoration:none} a:hover{text-decoration:underline}
+img{max-width:100%}
+h1,h2,h3{line-height:1.3;margin:0 0 .6rem} h1{font-size:1.6rem} h2{font-size:1.25rem} h3{font-size:1.05rem}
+.container{max-width:1160px;margin:0 auto;padding:0 16px}
+.muted{color:var(--muted)} .small{font-size:.85rem} .right{text-align:right} .nowrap{white-space:nowrap}
+.mt{margin-top:1rem} .mb{margin-bottom:1rem} .mt2{margin-top:2rem}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap} .between{justify-content:space-between}
+.grid{display:grid;gap:1rem} .g2{grid-template-columns:repeat(2,minmax(0,1fr))} .g3{grid-template-columns:repeat(3,minmax(0,1fr))} .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:860px){ .g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:560px){ .g2,.g3,.g4{grid-template-columns:1fr} }
+
+/* top bar */
+.topbar{background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.topbar .container{display:flex;align-items:center;gap:1rem;height:60px}
+.brand{font-weight:700;font-size:1.1rem;color:var(--text)} .brand span{color:var(--primary)}
+.brand-tag{font-size:.72rem;font-weight:600;background:var(--primary-soft);color:var(--primary);padding:2px 8px;border-radius:99px;margin-left:6px}
+.nav{display:flex;gap:.25rem;margin-left:auto;align-items:center;flex-wrap:wrap}
+.nav a{color:var(--muted);padding:.4rem .7rem;border-radius:8px;font-size:.92rem}
+.nav a:hover,.nav a.on{color:var(--text);background:var(--gray-soft);text-decoration:none}
+
+/* side layout (instructor/admin) */
+.shell{display:grid;grid-template-columns:220px 1fr;gap:1.5rem;padding:1.5rem 0 3rem}
+.side a{display:block;color:var(--muted);padding:.5rem .75rem;border-radius:9px;font-size:.93rem}
+.side a:hover{background:var(--gray-soft);text-decoration:none;color:var(--text)}
+.side a.on{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.side .group{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:1rem .75rem .3rem}
+@media (max-width:860px){ .shell{grid-template-columns:1fr} .side{display:flex;flex-wrap:wrap;gap:.25rem} .side .group{display:none} }
+main.page{padding:1.75rem 0 3rem}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow)}
+.card + .card{margin-top:1rem}
+.card h2{font-size:1.05rem}
+.stat .label{color:var(--muted);font-size:.82rem} .stat .value{font-size:1.45rem;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* course cards */
+.course-card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;color:var(--text);box-shadow:var(--shadow)}
+.course-card:hover{text-decoration:none;border-color:var(--primary)}
+.course-card img{aspect-ratio:16/9;object-fit:cover;width:100%;background:var(--primary-soft)}
+.course-card .body{padding:.9rem 1rem 1rem;display:flex;flex-direction:column;gap:.25rem;flex:1}
+.course-card .title{font-weight:650}
+.course-card .price{margin-top:auto;font-weight:700}
+.hero{padding:2.5rem 0 1.5rem} .hero h1{font-size:2rem}
+
+/* tables */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th,td{padding:.6rem .6rem;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{font-size:.78rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+
+/* forms */
+label{display:block;font-size:.85rem;font-weight:600;margin:.8rem 0 .3rem}
+input[type=text],input[type=email],input[type=password],input[type=number],input[type=url],input[type=datetime-local],input[type=date],select,textarea{
+  width:100%;padding:.55rem .7rem;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);font:inherit}
+textarea{min-height:110px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--primary-soft);border-color:var(--primary)}
+.check{display:flex;gap:.45rem;align-items:center;font-weight:400}
+.btn{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--border);background:var(--card);color:var(--text);padding:.5rem .95rem;border-radius:9px;font:inherit;font-weight:600;font-size:.9rem;cursor:pointer}
+.btn:hover{text-decoration:none;border-color:var(--primary)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--primary-ink)}
+.btn-danger{color:var(--red)} .btn-sm{padding:.3rem .6rem;font-size:.82rem} .btn-block{width:100%;justify-content:center}
+form.inline{display:inline}
+
+.alert{padding:.75rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:.92rem}
+.alert-success{background:var(--green-soft);color:var(--green)} .alert-danger{background:var(--red-soft);color:var(--red)}
+.alert-warning{background:var(--amber-soft);color:var(--amber)} .alert-info{background:var(--primary-soft);color:var(--primary)}
+.badge{display:inline-block;font-size:.74rem;font-weight:600;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.badge-green{background:var(--green-soft);color:var(--green)} .badge-amber{background:var(--amber-soft);color:var(--amber)}
+.badge-red{background:var(--red-soft);color:var(--red)} .badge-gray{background:var(--gray-soft);color:var(--muted)}
+.badge-primary{background:var(--primary-soft);color:var(--primary)}
+
+/* course detail */
+.course-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:1rem;align-items:start}
+.course-layout .buybox{position:sticky;top:76px}
+@media (max-width:900px){ .course-layout{grid-template-columns:1fr} .course-layout .buybox{position:static;order:-1} }
+
+/* learn page */
+.learn{display:grid;grid-template-columns:1fr 320px;gap:1.25rem;padding:1.25rem 0 3rem}
+@media (max-width:900px){ .learn{grid-template-columns:1fr} }
+.player{aspect-ratio:16/9;background:#000;border-radius:var(--radius);overflow:hidden}
+.player iframe,.player video{width:100%;height:100%;border:0;display:block}
+.curriculum .sec{font-weight:650;font-size:.88rem;margin:.9rem 0 .3rem}
+.curriculum a{display:flex;gap:.5rem;align-items:center;padding:.45rem .6rem;border-radius:8px;color:var(--text);font-size:.9rem}
+.curriculum a:hover{background:var(--gray-soft);text-decoration:none}
+.curriculum a.on{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.curriculum .tick{width:18px;flex-shrink:0;color:var(--green);font-weight:700}
+.progress{height:8px;background:var(--gray-soft);border-radius:99px;overflow:hidden}
+.progress > span{display:block;height:100%;background:var(--primary)}
+.prose{white-space:pre-wrap}
+
+.auth{max-width:420px;margin:3rem auto}
+.footer{border-top:1px solid var(--border);padding:1.5rem 0;color:var(--muted);font-size:.85rem}
