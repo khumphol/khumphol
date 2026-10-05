@@ -18,7 +18,7 @@ gwLog(null, 'webhook_in', $ref, ['key' => $in['key'] ?? ($in['type'] ?? '')]);
 
 $res = gwRetrieve($ref);
 if(empty($res['ok'])) wout(502, ['ok' => false, 'error' => 'verify_failed']);
-$o = db_one("SELECT * FROM orders WHERE gateway_ref = ?", [$ref]);
+$o = db_one("SELECT * FROM orders WHERE gateway_ref = ?", [$ref]);   // confirmPaid รับได้ทั้ง pending และ failed ที่ ref ตรงกัน
 if(!$o && !empty($res['order_no'])) $o = db_one("SELECT * FROM orders WHERE order_no = ?", [$res['order_no']]);
 if(!$o) wout(404, ['ok' => false, 'error' => 'no_order']);
 

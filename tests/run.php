@@ -85,6 +85,11 @@ section('PayoutService::withholding()');
 eq('1000 × 3% = 30 → 970', ['withholding' => '30.00', 'net' => '970.00'], PayoutService::withholding('1000', 3));
 eq('อัตรา 0', ['withholding' => '0.00', 'net' => '674.45'], PayoutService::withholding('674.45', 0));
 
+section('csv_safe() — กัน CSV formula injection');
+eq('ขึ้นต้นด้วย = ถูกครอบ', "'=HYPERLINK(1)", csv_safe('=HYPERLINK(1)'));
+eq('ตัวเลขติดลบไม่ถูกแตะ', '-674.45', csv_safe('-674.45'));
+eq('ข้อความปกติไม่ถูกแตะ', 'ธนาคาร', csv_safe('ธนาคาร'));
+
 section('IntegrationService — Playground ticket / VC JWT (รูปแบบเดียวกับ aleanor_ai)');
 $sec = 'test-secret';
 $t = IntegrationService::pgIssueTicket(42, 90, $sec, 1000000);
@@ -244,6 +249,24 @@ if(!in_array('--unit', $argv, true)){
             eq('ลบ override → กลับไปตามค่าเริ่มต้น', false, PermissionService::can($tid, 'coupons'));
             setting_set('mod_indy', '0');
             eq('ปิดโมดูล indy → ไม่มีใครใช้ lesson.indy ได้', false, PermissionService::can($tid, 'lesson.indy'));
+            // ── คูปองจำกัดจำนวน: จองตอนสร้างออเดอร์ / คืนเมื่อไม่สำเร็จ ──
+            $one = 'ONE'.strtoupper(uniqid());
+            $oneId = db_insert("INSERT INTO coupons (code, owner_type, type, value, max_uses, created_by, created_at) VALUES (?, 'platform', 'percent', 10, 1, 1, ?)", [$one, $now]);
+            $cE = db_one("SELECT * FROM courses WHERE id = ?", [db_insert("INSERT INTO courses (instructor_id, slug, title, price, status, created_at, updated_at) VALUES (?, ?, 'E', 500, 'published', ?, ?)", [$tid, 'e-'.uniqid(), $now, $now])]);
+            $oA = OrderService::createOrder($uid, OrderService::quote($cE, $one));
+            $threw = false; try { OrderService::createOrder($uid, OrderService::quote($cE, $one)); } catch(RuntimeException $e){ $threw = true; }
+            eq('คูปองใช้ได้ 1 ครั้ง: ออเดอร์ค้างที่ 2 สร้างไม่ได้', true, $threw || OrderService::quote($cE, $one)['coupon_error'] !== '');
+            OrderService::markFailed($oA['id'], 'test');
+            eq('ออเดอร์ไม่สำเร็จ → คืนสิทธิ์คูปอง', 0, (int)db_val("SELECT used_count FROM coupons WHERE id = ?", [$oneId]));
+            // ── กดยกเลิกแล้วกลับไปจ่าย: failed + gateway ยืนยัน → เปิดสิทธิ์ ──
+            $oB = OrderService::createOrder($uid, OrderService::quote($cE, $one));
+            $refB = 'mock_late_'.uniqid();
+            OrderService::attachGatewayRef($oB['id'], 'mock', $refB);
+            OrderService::markFailed($oB['id'], 'cancelled');
+            eq('ref ไม่ตรง → ไม่ยืนยัน', false, OrderService::confirmPaid($oB['id'], 'other_ref'));
+            eq('ref ตรง → ยืนยันได้แม้เคย failed', true, OrderService::confirmPaid($oB['id'], $refB));
+            eq('…และนับคูปองกลับ + เปิดสิทธิ์เรียน', [1, true], [(int)db_val("SELECT used_count FROM coupons WHERE id = ?", [$oneId]), OrderService::isEnrolled($uid, $cE['id'])]);
+
             // ── กันเดารหัสผ่าน ──
             $em = 'throttle_'.uniqid().'@t.test';
             for($i = 0; $i < 4; $i++) login_failed($em);

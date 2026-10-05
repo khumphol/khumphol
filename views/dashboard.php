@@ -35,7 +35,7 @@ $initial = mb_strtoupper(mb_substr($me['name'] ?? '?', 0, 1));
     <?php endforeach; ?>
     <div class="nav-bottom">
       <a class="nav-item" href="<?= h(u()) ?>"><i class="fi fi-rr-globe nav-icon"></i><span>ไปหน้าเว็บไซต์</span></a>
-      <a class="nav-item" href="<?= h(u('logout')) ?>"><i class="fi fi-rr-sign-out-alt nav-icon"></i><span>ออกจากระบบ</span></a>
+      <form method="post" action="<?= h(u('logout')) ?>"><?= csrf_field() ?><button class="nav-item" style="width:100%;border:0;background:none;font:inherit;cursor:pointer;text-align:left"><i class="fi fi-rr-sign-out-alt nav-icon"></i><span>ออกจากระบบ</span></button></form>
     </div>
   </nav>
 </aside>
@@ -65,7 +65,7 @@ $initial = mb_strtoupper(mb_substr($me['name'] ?? '?', 0, 1));
             <?php if(is_instructor()): ?><a href="<?= h(iu('profile')) ?>" class="dd-item"><div class="dd-icon" style="background:#ecfeff;color:#06b6d4;"><i class="fi fi-rr-id-badge"></i></div>โปรไฟล์ผู้สอน</a><?php endif; ?>
             <?php if(is_admin()): ?><a href="<?= h(au('settings')) ?>" class="dd-item"><div class="dd-icon" style="background:#dcfce7;color:#16a34a;"><i class="fi fi-rr-settings"></i></div>ตั้งค่า</a><?php endif; ?>
           </div>
-          <a href="<?= h(u('logout')) ?>" class="dd-logout"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ออกจากระบบ</a>
+          <form method="post" action="<?= h(u('logout')) ?>"><?= csrf_field() ?><button class="dd-logout" style="width:100%;border:0;font:inherit;cursor:pointer"><svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>ออกจากระบบ</button></form>
         </div>
       </div>
     </div>

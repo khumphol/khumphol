@@ -41,7 +41,7 @@ if(is_post()){
             flash('ลบบทเรียนแล้ว'); break;
         case 'vc':
             if(!PermissionService::can($uid, 'vc')){ flash('ไม่มีสิทธิ์ใช้ห้องเรียนเสมือน', 'danger'); break; }
-            db_write("UPDATE courses SET vc_enabled = ?, vc_room = ? WHERE id = ?", [post('vc_enabled') ? 1 : 0, preg_replace('~[^A-Za-z0-9_-]~', '', post('vc_room')), (int)$c['id']]);
+            db_write("UPDATE courses SET vc_enabled = ? WHERE id = ?", [post('vc_enabled') ? 1 : 0, (int)$c['id']]);
             flash('บันทึกห้องเรียนเสมือนแล้ว'); break;
         case 'submit':
             if(!PermissionService::can($uid, 'courses.submit')){ flash('บัญชีของคุณยังไม่ได้รับสิทธิ์ส่งคอร์สตรวจ — ติดต่อผู้ดูแลระบบ', 'danger'); break; }
@@ -124,7 +124,7 @@ $dis = $locked ? 'disabled' : '';
   <?php if(!IntegrationService::vcEnabled()): ?><p class="small muted">ผู้ดูแลระบบยังไม่ได้ตั้งค่าการเชื่อมต่อ VC</p><?php endif; ?>
   <form method="post" class="row"><?= csrf_field() ?><input type="hidden" name="action" value="vc">
     <label class="tgl" style="margin:0"><input type="checkbox" name="vc_enabled" value="1" <?= (int)$c['vc_enabled'] ? 'checked' : '' ?> <?= $dis ?>><span class="tgl-track"></span> เปิดห้องให้ผู้เรียนของคอร์สนี้</label>
-    <input type="text" name="vc_room" value="<?= h($c['vc_room']) ?>" placeholder="ชื่อห้อง (ว่าง = course-<?= (int)$c['id'] ?>)" style="width:240px" <?= $dis ?>>
+    <span class="small muted">ห้อง: course-<?= (int)$c['id'] ?></span>
     <button class="btn btn-sm" <?= $dis ?>>บันทึก</button>
     <?php if((int)$c['vc_enabled'] && IntegrationService::vcEnabled()): ?><a class="btn btn-sm btn-outline" href="<?= h(asset('vc.php').'?course='.(int)$c['id']) ?>" target="_blank">เข้าห้องในฐานะผู้สอน ↗</a><?php endif; ?>
   </form>

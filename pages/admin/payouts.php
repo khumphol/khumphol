@@ -4,13 +4,24 @@ $TITLE = 'รอบจ่ายเงินผู้สอน';
 $period = preg_match('~^\d{4}-\d{2}$~', get('period')) ? get('period') : date('Y-m', strtotime('first day of last month'));
 $back = au('payouts', ['period' => $period]);
 
+if(get('slip') !== ''){
+    // สลิปเก็บนอก web root (storage/private) — เปิดได้เฉพาะแอดมิน
+    $p = db_one("SELECT slip FROM payouts WHERE id = ?", [(int)get('slip')]);
+    $rel = $p ? preg_replace('~^private:~', '', $p['slip']) : '';
+    $abs = realpath(dirname(__DIR__, 2).'/storage/private/'.$rel);
+    if(!$abs || strpos($abs, realpath(dirname(__DIR__, 2).'/storage/private').'/') !== 0){ http_response_code(404); exit; }
+    while(ob_get_level()) ob_end_clean();
+    header('Content-Type: '.(mime_content_type($abs) ?: 'application/octet-stream'));
+    header('Cache-Control: private, no-store');
+    readfile($abs); exit;
+}
 if(get('export') === 'csv'){
     while(ob_get_level()) ob_end_clean();
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="payouts-'.$period.'.csv"');
     $out = fopen('php://output', 'w'); fwrite($out, "\xEF\xBB\xBF");
-    fputcsv($out, ['payout_id', 'ผู้สอน', 'ธนาคาร', 'เลขบัญชี', 'ชื่อบัญชี', 'เลขผู้เสียภาษี', 'ยอดรวม', 'หัก ณ ที่จ่าย', 'ยอดโอน', 'สถานะ']);
-    foreach(PayoutService::csvRows($period) as $r) fputcsv($out, [$r['id'], $r['name'], $r['bank_name'], $r['bank_account_no'], $r['bank_account_name'], $r['tax_id'], $r['gross'], $r['withholding_tax'], $r['net_amount'], $r['status']]);
+    csv_row($out, ['payout_id', 'ผู้สอน', 'ธนาคาร', 'เลขบัญชี', 'ชื่อบัญชี', 'เลขผู้เสียภาษี', 'ยอดรวม', 'หัก ณ ที่จ่าย', 'ยอดโอน', 'สถานะ']);
+    foreach(PayoutService::csvRows($period) as $r) csv_row($out, [$r['id'], $r['name'], $r['bank_name'], $r['bank_account_no'], $r['bank_account_name'], $r['tax_id'], $r['gross'], $r['withholding_tax'], $r['net_amount'], $r['status']]);
     fclose($out); exit;
 }
 if(is_post()){
@@ -21,7 +32,7 @@ if(is_post()){
                 $ids = PayoutService::createRun($period);
                 flash($ids ? 'สร้างรอบจ่าย '.count($ids).' รายการ' : 'ไม่มีผู้สอนที่ยอดถึงขั้นต่ำในรอบนี้', $ids ? 'success' : 'warning'); break;
             case 'paid':
-                $slip = upload_image('slip', 'slips');
+                $slip = upload_private_image('slip', 'slips');
                 PayoutService::markPaid((int)post('id'), post('transfer_ref'), $slip) ? flash('บันทึกการโอนแล้ว (ส่งอีเมลแจ้งผู้สอน)') : flash('รายการนี้ไม่อยู่ในสถานะรอโอน', 'danger'); break;
             case 'cancel':
                 PayoutService::cancel((int)post('id'), post('note')) ? flash('ยกเลิกรอบแล้ว — ยอดกลับเข้ายอดถอนได้ของผู้สอน') : flash('ยกเลิกไม่ได้', 'danger'); break;
@@ -66,7 +77,7 @@ foreach($payouts as $p) if($p['status'] !== 'cancelled'){ $sum['gross'] += $p['g
       <td class="num"><strong><?= baht($p['net_amount']) ?></strong></td>
       <td><?= $p['status'] === 'paid' ? '<span class="badge badge-success">โอนแล้ว</span><div class="small muted">'.h($p['paid_at']).($p['transfer_ref'] ? ' · '.h($p['transfer_ref']) : '').'</div>'
             : ($p['status'] === 'cancelled' ? '<span class="badge badge-secondary">ยกเลิก</span>' : '<span class="badge badge-warning">รอโอน</span>') ?>
-          <?php if($p['slip']): ?><div><a class="small" href="<?= h(asset($p['slip'])) ?>" target="_blank">ดูสลิป</a></div><?php endif; ?></td>
+          <?php if($p['slip']): ?><div><a class="small" href="<?= h(au('payouts', ['slip' => $p['id']])) ?>" target="_blank">ดูสลิป</a></div><?php endif; ?></td>
       <td class="right"><?php if($p['status'] === 'pending'): ?>
         <form method="post" enctype="multipart/form-data" class="row" style="justify-content:flex-end"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
           <input type="text" name="transfer_ref" placeholder="เลขอ้างอิงการโอน" style="width:150px"><input type="file" name="slip" accept="image/*" style="width:190px">

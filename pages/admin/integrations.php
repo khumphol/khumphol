@@ -30,7 +30,7 @@ $pgOk = IntegrationService::pgEnabled(); $vcOk = IntegrationService::vcEnabled()
     <label>URL ของ VC</label><input type="url" name="vc_base_url" value="<?= h(setting('vc_base_url', '')) ?>" placeholder="https://vc.example.com">
     <label>Tenant ID (ตรงกับ vc_tenants ในฝั่ง VC)</label><input type="text" name="vc_tenant_id" value="<?= h(setting('vc_tenant_id', 'cloud')) ?>">
     <label>JWT secret (เว้นว่าง = ไม่เปลี่ยน)</label><input type="password" name="vc_jwt_secret" placeholder="<?= setting('vc_jwt_secret', '') !== '' ? 'ตั้งไว้แล้ว ••••' : '' ?>" autocomplete="new-password">
-    <p class="small muted mt">ฝั่ง VC: เพิ่มแถว <code>vc_tenants</code> และใส่ secret ใน <code>.aleanor_vc_secrets.php</code> · ห้องต่อคอร์ส = <code>course-&lt;id&gt;</code> (เปิดที่หน้าแก้ไขคอร์สของผู้สอน)</p>
+    <p class="small muted mt">ฝั่ง VC: เพิ่มแถว <code>vc_tenants</code> และใส่ secret ใน <code>.aleanor_vc_secrets.php</code> · ห้องต่อคอร์ส = <code>course-&lt;id&gt;</code> (ผูกกับคอร์สเสมอ · เปิดที่หน้าแก้ไขคอร์สของผู้สอน)</p>
     <button class="btn btn-sm" name="action" value="gen" onclick="this.form.which.value='vc'">สร้างรหัสลับใหม่</button>
   </div>
 </div>

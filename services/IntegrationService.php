@@ -64,7 +64,8 @@ class IntegrationService
         $p = self::b64(json_encode($payload, JSON_UNESCAPED_UNICODE));
         return $h.'.'.$p.'.'.self::b64(hash_hmac('sha256', $h.'.'.$p, $secret, true));
     }
-    public static function vcRoom(array $course){ return $course['vc_room'] !== '' ? $course['vc_room'] : 'course-'.(int)$course['id']; }
+    /** ห้องผูกกับ id คอร์สเสมอ (ผู้สอนตั้งชื่อห้องเองไม่ได้ — กันแอบเข้าห้องคอร์สอื่นในฐานะ teacher) */
+    public static function vcRoom(array $course){ return 'course-'.(int)$course['id']; }
     /** สิทธิ์เข้าห้อง: ผู้ลงทะเบียน (student) / ผู้สอนเจ้าของคอร์สหรือแอดมิน (teacher) — null = เข้าไม่ได้ */
     public static function vcRoleFor(array $course, $userId){
         if(!$userId) return null;

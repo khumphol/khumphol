@@ -89,6 +89,15 @@ class OrderService
     public static function createOrder($userId, array $quote, array $bill = []){
         if(!$quote['items']) throw new RuntimeException('ตะกร้าว่าง');
         return db_tx(function() use($userId, $quote, $bill){
+            if($quote['coupon']){
+                // จองสิทธิ์ใช้คูปองทันที (ล็อกแถว + ตรวจซ้ำ) — กันสร้างหลายออเดอร์ค้างไว้แล้วจ่ายเกินจำนวนที่กำหนด
+                $cp = db_one("SELECT * FROM coupons WHERE id = ? FOR UPDATE", [(int)$quote['coupon']['id']]);
+                $now = date('Y-m-d H:i:s');
+                if(!$cp || !(int)$cp['is_active'] || ($cp['starts_at'] && $cp['starts_at'] > $now) || ($cp['ends_at'] && $cp['ends_at'] <= $now)
+                   || ((int)$cp['max_uses'] > 0 && (int)$cp['used_count'] >= (int)$cp['max_uses']))
+                    throw new RuntimeException('คูปองนี้ใช้ไม่ได้แล้ว');
+                db_write("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?", [(int)$cp['id']]);
+            }
             $no = 'AC'.date('ymd').strtoupper(bin2hex(random_bytes(4)));
             $now = date('Y-m-d H:i:s');
             $orderId = db_insert("INSERT INTO orders (order_no, user_id, status, subtotal, discount, total, coupon_id, bill_name, bill_tax_id, bill_address, created_at, updated_at)
@@ -128,7 +137,9 @@ class OrderService
         return db_tx(function() use($orderId, $gatewayRef, $gatewayFee, $paidAt){
             $o = db_one("SELECT * FROM orders WHERE id = ? FOR UPDATE", [(int)$orderId]);
             if(!$o) throw new RuntimeException('ไม่พบคำสั่งซื้อ');
-            if($o['status'] !== 'pending') return false;
+            // failed/cancelled ที่ gateway ยืนยันว่าจ่ายแล้ว (เช่น กดยกเลิกแล้วกลับไปจ่ายในแท็บเดิม) → ต้องเปิดสิทธิ์ให้ ไม่งั้นลูกค้าเสียเงินฟรี
+            if(!in_array($o['status'], ['pending', 'failed', 'cancelled'], true)) return false;
+            if($o['status'] !== 'pending' && ($gatewayRef === '' || $o['gateway_ref'] !== $gatewayRef)) return false;
             if($gatewayRef !== '' && $o['gateway_ref'] && $o['gateway_ref'] !== $gatewayRef)
                 throw new RuntimeException('gateway_ref ไม่ตรงกับคำสั่งซื้อ');
 
@@ -157,7 +168,8 @@ class OrderService
             db_write("UPDATE orders SET status = 'paid', paid_at = ?, gateway_fee = ?, gateway_ref = COALESCE(gateway_ref, ?), receipt_no = ?,
                         vat_rate = ?, vat_amount = ?, updated_at = ? WHERE id = ?",
                 [$paidAt, $fee, $gatewayRef !== '' ? $gatewayRef : null, $receipt, $vat['rate'], $vat['vat'], date('Y-m-d H:i:s'), (int)$o['id']]);
-            if($o['coupon_id']) db_write("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?", [(int)$o['coupon_id']]);
+            // คูปองถูกจองไว้ตอนสร้างออเดอร์แล้ว — ถ้าออเดอร์เคยถูกปล่อย (failed) แต่ gateway ยืนยันว่าจ่ายจริง ให้นับกลับ
+            if($o['coupon_id'] && $o['status'] === 'failed') db_write("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?", [(int)$o['coupon_id']]);
             gwLog((int)$o['id'], 'marked_paid', $gatewayRef, ['fee' => $fee]);
             if(class_exists('MailService')) MailService::orderPaid((int)$o['id']);
             return true;
@@ -165,9 +177,22 @@ class OrderService
     }
 
     public static function markFailed($orderId, $reason = ''){
-        $n = db_write("UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ? AND status = 'pending'", [date('Y-m-d H:i:s'), (int)$orderId]);
-        if($n) gwLog((int)$orderId, 'failed', '', ['reason' => $reason]);
-        return $n > 0;
+        return db_tx(function() use($orderId, $reason){
+            $o = db_one("SELECT * FROM orders WHERE id = ? FOR UPDATE", [(int)$orderId]);
+            if(!$o || $o['status'] !== 'pending') return false;
+            db_write("UPDATE orders SET status = 'failed', updated_at = ? WHERE id = ?", [date('Y-m-d H:i:s'), (int)$orderId]);
+            if($o['coupon_id']) db_write("UPDATE coupons SET used_count = GREATEST(used_count - 1, 0) WHERE id = ?", [(int)$o['coupon_id']]);   // คืนสิทธิ์คูปอง
+            gwLog((int)$orderId, 'failed', '', ['reason' => $reason]);
+            return true;
+        });
+    }
+
+    /** ออเดอร์ค้างจ่ายเกิน $hours ชม. → failed (คืนสิทธิ์คูปอง) — เรียกจาก cron */
+    public static function expireStale($hours = 24){
+        $n = 0;
+        foreach(db_all("SELECT id FROM orders WHERE status = 'pending' AND created_at < ?", [date('Y-m-d H:i:s', time() - $hours * 3600)]) as $o)
+            $n += self::markFailed((int)$o['id'], 'expired') ? 1 : 0;
+        return $n;
     }
 
     /** คอร์สฟรี (ราคา 0) — ลงทะเบียนเลยไม่ต้องมีออเดอร์ */
@@ -195,6 +220,13 @@ class OrderService
      * @param bool        $viaGateway true = สั่งคืนเงินที่ Omise/Stripe ด้วย (ไม่งั้นแค่บันทึก — คืนเงินเองนอกระบบ)
      */
     public static function refundItem($itemId, $reason, $amount = null, $viaGateway = false){
+        // ล็อกต่อรายการตลอดการคืนเงิน (กันกดซ้ำแล้ว gateway คืนเงินสองครั้ง)
+        $lock = 'aleanor_cloud_refund_'.(int)$itemId;
+        if((int)db_val("SELECT GET_LOCK(?, 5)", [$lock]) !== 1) throw new RuntimeException('มีการคืนเงินรายการนี้อยู่ กรุณารอสักครู่');
+        try { return self::refundItemLocked($itemId, $reason, $amount, $viaGateway); }
+        finally { db_val("SELECT RELEASE_LOCK(?)", [$lock]); }
+    }
+    private static function refundItemLocked($itemId, $reason, $amount, $viaGateway){
         $it0 = db_one("SELECT oi.*, o.gateway_ref, o.status AS order_status FROM order_items oi JOIN orders o ON o.id = oi.order_id WHERE oi.id = ?", [(int)$itemId]);
         if(!$it0) throw new RuntimeException('ไม่พบรายการ');
         if(!in_array($it0['order_status'], ['paid', 'partially_refunded'], true)) throw new RuntimeException('คำสั่งซื้อนี้คืนเงินไม่ได้');

@@ -4,11 +4,12 @@ $TITLE = 'ผลการชำระเงิน';
 require_login();
 $o = db_one("SELECT * FROM orders WHERE order_no = ? AND user_id = ?", [get('order'), current_user_id()]);
 if(!$o){ echo '<div class="card">ไม่พบคำสั่งซื้อ</div>'; return; }
-if($o['status'] === 'pending' && $o['gateway_ref']){
+// กดยกเลิก (?cancel=1) ไม่ทำให้ออเดอร์ล้มเหลวทันที — หน้าจ่ายของ Stripe ยังจ่ายต่อได้ ปล่อยให้หมดอายุเอง (cron expire)
+if(in_array($o['status'], ['pending', 'failed'], true) && $o['gateway_ref']){
     $r = gwRetrieve($o['gateway_ref']);
     if(!empty($r['ok'])){
         if(!empty($r['paid'])) OrderService::confirmPaid($o['id'], $o['gateway_ref'], $r['fee']);
-        elseif(($r['status'] ?? '') === 'failed' || get('cancel')) OrderService::markFailed($o['id'], get('cancel') ? 'cancelled' : 'failed');
+        elseif(($r['status'] ?? '') === 'failed') OrderService::markFailed($o['id'], 'failed');
     }
     $o = db_one("SELECT * FROM orders WHERE id = ?", [$o['id']]);
 }

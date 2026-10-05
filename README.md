@@ -56,6 +56,7 @@ The integration tests run inside a transaction that is rolled back, so they leav
 ```cron
 5 0 * * *    php /path/to/aleanor_cloud/cron/release-earnings.php   # release earnings once the hold period ends (default 14 days)
 */5 * * * *  php /path/to/aleanor_cloud/cron/send-mail.php          # send queued emails
+0 * * * *    php /path/to/aleanor_cloud/cron/expire-orders.php      # orders unpaid for 24h → failed (releases coupon uses)
 ```
 
 Docs trash is auto-purged after the number of days in `docs_trash_days`.

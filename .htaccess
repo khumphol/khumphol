@@ -1,0 +1,5 @@
+# เอกสารในโปรเจกต์ไม่ต้องเปิดสาธารณะ
+<FilesMatch "\.(md|sql|sh|log|json|lock)$">
+  Require all denied
+</FilesMatch>
+Options -Indexes

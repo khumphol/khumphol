@@ -193,3 +193,22 @@ function login_failed($email){
     if(mt_rand(1, 50) === 1) db_write("DELETE FROM login_attempts WHERE created_at < ?", [date('Y-m-d H:i:s', time() - 86400)]);
 }
 function login_clear($email){ db_write("DELETE FROM login_attempts WHERE email_hash = ?", [hash('sha256', mb_strtolower(trim($email)))]); }
+
+/** ค่าในไฟล์ CSV — กันสูตร (=,+,-,@,tab,CR) ที่ Excel จะรันเมื่อเปิดไฟล์ (CSV/formula injection) */
+function csv_safe($v){
+    $v = (string)$v;
+    return ($v !== '' && strpbrk($v[0], "=+-@\t\r") !== false && !is_numeric($v)) ? "'".$v : $v;
+}
+function csv_row($fh, array $row){ fputcsv($fh, array_map('csv_safe', $row)); }
+
+/** ไฟล์ส่วนตัว (สลิปโอนเงิน) เก็บใน storage/private ซึ่งเข้าตรงไม่ได้ — เปิดผ่าน admin เท่านั้น */
+function upload_private_image($field, $dir){
+    if(empty($_FILES[$field]['name']) || $_FILES[$field]['error'] !== UPLOAD_ERR_OK) return '';
+    $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+    if(!in_array($ext, ['jpg','jpeg','png','webp'], true) || $_FILES[$field]['size'] > 5 * 1024 * 1024) return '';
+    if(@getimagesize($_FILES[$field]['tmp_name']) === false) return '';
+    $base = dirname(__DIR__).'/storage/private/'.$dir;
+    if(!is_dir($base)) @mkdir($base, 0775, true);
+    $fn = bin2hex(random_bytes(12)).'.'.$ext;
+    return @move_uploaded_file($_FILES[$field]['tmp_name'], $base.'/'.$fn) ? 'private:'.$dir.'/'.$fn : '';
+}

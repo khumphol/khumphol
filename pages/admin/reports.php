@@ -22,8 +22,8 @@ if(get('export') === 'csv'){
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="report-'.$by.'-'.$from.'-'.$to.'.csv"');
     $out = fopen('php://output', 'w'); fwrite($out, "\xEF\xBB\xBF");
-    fputcsv($out, array_merge([$group[1]], array_values($cols), ['แพลตฟอร์มสุทธิ', 'ผู้สอนสุทธิ']));
-    foreach($rows as $r) fputcsv($out, [$r['k'], $r['n'], $r['gross'], $r['fee'], $r['platform'], $r['instructor'], $r['refunded'],
+    csv_row($out, array_merge([$group[1]], array_values($cols), ['แพลตฟอร์มสุทธิ', 'ผู้สอนสุทธิ']));
+    foreach($rows as $r) csv_row($out, [$r['k'], $r['n'], $r['gross'], $r['fee'], $r['platform'], $r['instructor'], $r['refunded'],
         number_format($r['platform'] - $r['refunded_platform'], 2, '.', ''), number_format($r['instructor'] - $r['refunded_instructor'], 2, '.', '')]);
     fclose($out); exit;
 }

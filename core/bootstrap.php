@@ -14,6 +14,8 @@ require_once __DIR__.'/router.core.php';
 
 // ── session + header ความปลอดภัย (ทุกทางเข้าเว็บ — CLI ข้าม) ──
 if(PHP_SAPI !== 'cli'){
+    // มีโค้ดเปิด session ชื่ออื่นไปก่อน (เช่น PHPSESSID ที่แชร์กับแอปอื่นบนโฮสต์) → ปิดแล้วเปิด ACSESS ใหม่ ไม่เชื่อ session นั้น
+    if(session_status() === PHP_SESSION_ACTIVE && session_name() !== 'ACSESS'){ session_write_close(); $_SESSION = []; }
     if(session_status() === PHP_SESSION_NONE){
         $__https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
         session_name('ACSESS');

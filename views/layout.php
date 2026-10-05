@@ -25,7 +25,7 @@ $cartN = $me ? (int)db_val("SELECT COUNT(*) FROM cart_items WHERE user_id = ?", 
       <?php if(is_instructor()): ?><a href="<?= h(iu()) ?>">ผู้สอน</a>
       <?php elseif(!$me['instructor_status']): ?><a href="<?= h(u('become-instructor')) ?>">สมัครเป็นผู้สอน</a><?php endif; ?>
       <?php if(is_admin()): ?><a href="<?= h(au()) ?>">แอดมิน</a><?php endif; ?>
-      <a href="<?= h(u('logout')) ?>" title="<?= h($me['email']) ?>">ออกจากระบบ</a>
+      <form method="post" action="<?= h(u('logout')) ?>" style="display:inline"><?= csrf_field() ?><button style="border:0;background:none;color:var(--muted);font:inherit;font-size:.92rem;cursor:pointer;padding:.4rem .7rem" title="<?= h($me['email']) ?>">ออกจากระบบ</button></form>
     <?php else: ?>
       <a href="<?= h(u('login')) ?>">เข้าสู่ระบบ</a>
       <a class="btn btn-primary btn-sm" href="<?= h(u('register')) ?>">สมัครสมาชิก</a>
