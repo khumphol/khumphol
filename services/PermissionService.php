@@ -23,6 +23,8 @@ class PermissionService
             'docs'             => ['label' => 'Aleanor Docs (Write/Grid/Present)', 'group' => 'บทเรียน', 'default' => 1, 'module' => 'docs'],
             'lesson.playground'=> ['label' => 'Aleanor Playground',              'group' => 'บทเรียน', 'default' => 1, 'module' => 'playground'],
             'vc'               => ['label' => 'ห้องเรียนเสมือน (Aleanor VC)',      'group' => 'บทเรียน', 'default' => 0, 'module' => 'vc'],
+            'live'             => ['label' => 'สอนสด (Aleanor Streaming)',         'group' => 'บทเรียน', 'default' => 1, 'module' => 'live'],
+            'lc'               => ['label' => 'นำเข้าบทเรียนจากคลัง Aleanor LC',   'group' => 'คอร์ส',   'default' => 1, 'module' => 'lc'],
             'certificates'     => ['label' => 'ออกใบประกาศเมื่อเรียนจบ',           'group' => 'บทเรียน', 'default' => 1, 'module' => 'certificates'],
         ];
     }
@@ -34,6 +36,8 @@ class PermissionService
             'docs'         => ['label' => 'Aleanor Docs',       'icon' => 'fi-rr-document',     'desc' => 'Write / Grid / Present + โฟลเดอร์ ถังขยะ โควตา'],
             'playground'   => ['label' => 'Aleanor Playground', 'icon' => 'fi-rr-cube',         'desc' => 'แอป 3D ผ่าน SSO (ต้องตั้ง URL + secret)'],
             'vc'           => ['label' => 'Aleanor VC',         'icon' => 'fi-rr-users-alt',    'desc' => 'ห้องเรียนเสมือนผ่านลิงก์ JWT (ต้องตั้ง URL + secret)'],
+            'live'         => ['label' => 'Aleanor Streaming',  'icon' => 'fi-rr-broadcast-tower', 'desc' => 'ผู้สอนสอนสดจากเบราว์เซอร์ ผู้เรียนดูในหน้าเรียน พร้อมแชทและรายชื่อผู้เข้าชม'],
+            'lc'           => ['label' => 'Aleanor LC',         'icon' => 'fi-rr-books',        'desc' => 'คลังบทเรียนต้นแบบ — ผู้สอนนำเข้าเป็นคอร์สใหม่ได้ทันที (ต้องตั้ง URL + รหัสสถาบัน + secret)'],
             'certificates' => ['label' => 'ใบประกาศ',           'icon' => 'fi-rr-diploma',      'desc' => 'ออกใบประกาศเมื่อเรียนครบ + หน้าตรวจสอบ'],
         ];
     }

@@ -15,7 +15,7 @@ $sections = [
     ],
     'โมดูล & การเชื่อมต่อ' => [
         ['modules', 'โมดูล', 'เปิด/ปิด Indy · Docs · Playground · VC · ใบประกาศ', 'fi-rr-apps', '#06b6d4'],
-        ['integrations', 'Playground & VC', 'URL + รหัสลับ สำหรับ SSO / JWT', 'fi-rr-plug-connection', '#14b8a6'],
+        ['integrations', 'การเชื่อมต่อ', 'Playground · VC · Aleanor LC · Streaming', 'fi-rr-plug-connection', '#14b8a6'],
         ['mail', 'อีเมล', 'ตั้งค่า SMTP + กล่องจดหมายออก', 'fi-rr-envelope', '#ec4899'],
     ],
     'ระบบ' => [

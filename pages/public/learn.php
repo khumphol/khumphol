@@ -48,14 +48,26 @@ $pct = count($all) ? round(count($done) * 100 / count($all)) : 0;
 $embed = $lesson['video_url'] !== '' ? video_embed($lesson['video_url']) : null;
 $cert = $enrolled ? CertificateService::forUser($uid, (int)$c['id']) : null;
 $vcOpen = (int)$c['vc_enabled'] && IntegrationService::vcEnabled() && PermissionService::can($c['instructor_id'], 'vc') && ($enrolled || $isOwner);
+// Aleanor Streaming — ผู้ลงทะเบียน/เจ้าของคอร์สเห็นไลฟ์ที่กำลังออกอากาศ (ไม่มีไลฟ์ = เช็กเป็นระยะแล้วขึ้นแจ้งเตือน)
+$liveOk = $uid && ($enrolled || $isOwner) && PermissionService::moduleOn('live') && LiveService::enabledFor($c);
+$liveSess = $liveOk ? LiveService::active((int)$c['id']) : null;
 // บทเรียนจากโมดูลที่ถูกปิด → ไม่แสดงเนื้อหา
 $modOff = ($lesson['type'] === 'indy' && !PermissionService::moduleOn('indy')) || ($lesson['type'] === 'doc' && !PermissionService::moduleOn('docs'))
        || ($lesson['type'] === 'playground' && !IntegrationService::pgEnabled());
 $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND user_id = ?", [(int)$c['id'], $uid]) : null;
 ?>
+<?php if($liveOk): $lv = function($f){ return (int)@filemtime(dirname(__DIR__, 2).'/assets/live/'.$f); }; ?>
+<link rel="stylesheet" href="<?= h(asset('assets/live/live.css')) ?>?v=<?= $lv('live.css') ?>">
+<?php endif; ?>
 <div class="container"><div class="learn">
   <div>
     <div class="learn-crumb"><a href="<?= h(u('courses')) ?>">คอร์สเรียน</a> <i class="fi fi-rr-angle-small-right"></i> <a href="<?= h(u('course', ['slug' => $c['slug']])) ?>"><?= h($c['title']) ?></a></div>
+    <?php if($liveSess): ?>
+    <div class="live-watch" id="liveWatch">
+      <div><div class="live-watch-h"><span class="live-dot"></span> กำลังสอนสด<?= trim((string)$liveSess['title']) !== '' && $liveSess['title'] !== $c['title'] ? ' — '.h($liveSess['title']) : '' ?></div><div id="alvPlayer"></div></div>
+      <div id="liveChat"></div>
+    </div>
+    <?php endif; ?>
     <h1><?= h($lesson['title']) ?></h1>
     <?php if($modOff): ?>
       <div class="card muted">บทเรียนนี้ยังเปิดใช้งานไม่ได้ในขณะนี้</div>
@@ -108,3 +120,37 @@ $myReview = $enrolled ? db_one("SELECT * FROM reviews WHERE course_id = ? AND us
     <?php endforeach; ?>
   </aside>
 </div></div>
+<?php if($liveOk):
+  $liveL = LiveService::jsLabels(['tap_sound','sound','pip','fullscreen','connecting','reconnecting','full','full_sub','ended','error','net_err','waiting','waiting_sub','by','toast','toast_go',
+                                  'chat_empty','chat_ph','chat_send','chat_host','chat_slow','chat_closed']);
+  $liveL['endedSub'] = 'ขอบคุณที่เข้าร่วม — เรียนบทเรียนต่อได้ตามปกติ'; ?>
+<script src="<?= h(asset('assets/live/live-viewer.js')) ?>?v=<?= $lv('live-viewer.js') ?>"></script>
+<script src="<?= h(asset('assets/live/live-chat.js')) ?>?v=<?= $lv('live-chat.js') ?>"></script>
+<script>
+// Aleanor Streaming — ตัวดูไลฟ์ + แชท / แจ้งเมื่อผู้สอนเริ่มไลฟ์ระหว่างที่เปิดหน้านี้อยู่
+(function(){
+  var API = <?= json_encode(asset('api/live.php')) ?>, CSRF = <?= json_encode(csrf_token()) ?>, CID = <?= (int)$c['id'] ?>, L = <?= json_encode($liveL, JSON_UNESCAPED_UNICODE) ?>;
+  var box = document.getElementById('alvPlayer');
+  if(box){
+    var chat = AleanorLive.chat(document.getElementById('liveChat'), { api: API, csrf: CSRF, lbl: L });
+    AleanorLive.viewer(box, { api: API, csrf: CSRF, course: CID, lbl: L, onLive: function(on, j){ if(on && j) chat.setSession(j.session); else if(!on) chat.end(); } });
+    return;
+  }
+  var shown = false;
+  function check(){
+    if(shown || document.hidden) return;
+    AleanorLive.post(API, { csrf_token: CSRF, action: 'status', course_key: CID }).then(function(j){
+      if(!j || !j.ok || !j.live || j.self || shown) return;
+      shown = true;
+      var t = document.createElement('div'); t.className = 'live-toast';
+      var d = document.createElement('span'); d.className = 'live-dot'; t.appendChild(d);
+      var s = document.createElement('span'); s.textContent = L.toast + (j.host ? ' — ' + j.host : ''); t.appendChild(s);
+      var a = document.createElement('button'); a.type = 'button'; a.className = 'btn btn-primary'; a.textContent = L.toastGo;
+      a.addEventListener('click', function(){ location.reload(); });
+      t.appendChild(a); document.body.appendChild(t);
+    }).catch(function(){});
+  }
+  setInterval(check, 45000);
+})();
+</script>
+<?php endif; ?>

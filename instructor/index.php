@@ -8,6 +8,8 @@ run_area('instructor', [
     'courses'     => ['file' => 'instructor/courses.php',     'feature' => 'courses'],
     'course-edit' => ['file' => 'instructor/course-edit.php', 'feature' => 'courses', 'menu' => 'courses'],
     'lesson-edit' => ['file' => 'instructor/lesson-edit.php', 'feature' => 'courses', 'menu' => 'courses'],
+    'live'        => ['file' => 'instructor/live.php',        'feature' => 'live', 'module' => 'live', 'menu' => 'courses'],
+    'lc-library'  => ['file' => 'instructor/lc-library.php',  'feature' => 'lc', 'module' => 'lc', 'menu' => 'courses'],
     'students'    => ['file' => 'instructor/students.php',    'feature' => 'students'],
     'coupons'     => ['file' => 'instructor/coupons.php',     'feature' => 'coupons'],
     'earnings'    => ['file' => 'instructor/earnings.php',    'feature' => 'earnings'],

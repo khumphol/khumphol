@@ -84,7 +84,7 @@ $dis = $locked ? 'disabled' : '';
     <div class="grid g3">
       <div><label>ระดับ</label><select name="level"><?php foreach(['all' => 'ทุกระดับ','beginner' => 'เริ่มต้น','intermediate' => 'กลาง','advanced' => 'สูง'] as $k => $v): ?><option value="<?= $k ?>" <?= $c['level'] === $k ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
       <div><label>ราคา (บาท, 0 = ฟรี)</label><input type="number" name="price" min="0" step="0.01" value="<?= h($c['price']) ?>" <?= PermissionService::can($uid, 'courses.pricing') ? '' : 'disabled title="ราคากำหนดโดยผู้ดูแลระบบ"' ?>></div>
-      <div><label>ภาพปก (16:9)</label><input type="file" name="cover" accept="image/*"></div>
+      <div><label>ภาพปก (16:9)</label><input type="file" name="cover" accept="image/*" data-cover="course" data-cover-title="[name=title]"></div>
     </div>
     <p class="small muted">ส่วนแบ่งแพลตฟอร์มปัจจุบันของคอร์สนี้: <strong><?= h($rate['rate']) ?>%</strong> ของยอดหลังหักค่าธรรมเนียมชำระเงิน</p>
     <button class="btn btn-primary">บันทึก</button>
@@ -118,6 +118,14 @@ $dis = $locked ? 'disabled' : '';
   <?php endforeach; ?>
 </div>
 
+<?php if(PermissionService::moduleOn('live') && PermissionService::can($uid, 'live')): $liveNow = LiveService::active((int)$c['id']); ?>
+<div class="card">
+  <h2><i class="fi fi-rr-broadcast-tower"></i> สอนสด (Aleanor Streaming)<?php if($liveNow): ?> <span class="badge badge-danger">● LIVE</span><?php endif; ?></h2>
+  <p class="small muted">สอนสดจากเบราว์เซอร์ของคุณได้ทันที — แชร์หน้าจอพร้อมกล้อง ผู้เรียนที่ลงทะเบียนดูได้ในหน้าเรียน มีแชทและรายชื่อผู้เข้าชม</p>
+  <a class="btn btn-primary" href="<?= h(iu('live', ['course' => $c['id']])) ?>"><i class="fi fi-rr-signal-stream"></i> <?= $liveNow ? 'กลับไปที่ไลฟ์' : 'เปิดสตูดิโอสอนสด' ?></a>
+</div>
+<?php endif; ?>
+
 <?php if(PermissionService::can($uid, 'vc')): ?>
 <div class="card">
   <h2><i class="fi fi-rr-users-alt"></i> ห้องเรียนเสมือน (Aleanor VC)</h2>
@@ -130,3 +138,4 @@ $dis = $locked ? 'disabled' : '';
   </form>
 </div>
 <?php endif; ?>
+<?php if(PermissionService::moduleOn('docs') && PermissionService::can($uid, 'docs')){ require_once dirname(__DIR__, 2).'/services/DocsService.php'; echo DocsService::coverPicker(iu('doc-edit', ['type' => 'cover']), asset('api/docs.php')); } ?>

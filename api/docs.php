@@ -98,6 +98,7 @@ try {
     }
 
     // ── POST: ตรวจ CSRF ──
+    if(get('cover') === '1' && in_array($action, ['render', 'upload', 'images'], true)) $action = 'cover_'.$action;   // ตัวแก้ไขภาพปก (โค้ด JS ชุดเดียวกับ aleanor_ai)
     $tok = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ($_POST['csrf_token'] ?? ''));
     if($tok === '' || !hash_equals(csrf_token(), $tok)) docs_out(403, ['ok' => false, 'error' => 'csrf']);
 
@@ -194,6 +195,62 @@ try {
         if(!$r['ok'] && $r['error'] === 'quota') docs_quota_err($uid);
         if($r['ok']) $r['key'] = $r['id'];
         docs_out(200, $r);
+
+    // ── Aleanor Cover (assets/docs/aleanor-cover.js เรียกด้วย ?cover=1 → action render/upload/images) ──
+    case 'cover_render':                                    // เก็บภาพที่เบราว์เซอร์เรนเดอร์จากเอกสารภาพปก
+        $doc = DocsService::get(docs_id());
+        if(!$doc || $doc['type'] !== 'cover') docs_out(404, ['ok' => false, 'error' => 'not_found']);
+        if(!DocsService::canEdit($doc, $uid)) docs_out(403, ['ok' => false, 'error' => 'forbidden']);
+        if(empty($_FILES['image']['tmp_name']) || !is_uploaded_file($_FILES['image']['tmp_name'])) docs_out(400, ['ok' => false, 'error' => 'no_file']);
+        $size = (int)$_FILES['image']['size'];
+        if($size <= 0 || $size > 20 * 1024 * 1024) docs_out(200, ['ok' => false, 'error' => 'too_large']);
+        $info = @getimagesize($_FILES['image']['tmp_name']);
+        $ext = $info ? ([IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg', IMAGETYPE_WEBP => 'webp'][$info[2]] ?? '') : '';
+        if($ext === '') docs_out(200, ['ok' => false, 'error' => 'bad_type']);
+        $owner = (int)$doc['owner_id'];
+        $delta = $size - (int)$doc['asset_size'];
+        if($delta > 0 && !DocsService::quotaAllows($owner, $delta)) docs_quota_err($owner);
+        $fn = 'cover_'.(int)$doc['id'].'_'.bin2hex(random_bytes(4)).'.'.$ext;
+        if(!@move_uploaded_file($_FILES['image']['tmp_name'], DocsService::userDir($owner).$fn)) docs_out(500, ['ok' => false, 'error' => 'write_failed']);
+        if(!empty($doc['asset'])) DocsService::fileUnlink($doc['asset'], $owner);      // ภาพเก่าไม่ต้องเก็บ
+        db_write("UPDATE docs_documents SET asset = ?, asset_size = ?, updated_at = ? WHERE id = ?", [$fn, $size, now(), (int)$doc['id']]);
+        $doc = DocsService::get((int)$doc['id']);
+        docs_quota_out($owner, ['url' => DocsService::coverAssetUrl($doc), 'rel' => DocsService::userRel($owner).$fn, 'size_h' => DocsService::formatBytes($size)]);
+
+    case 'cover_upload':                                    // รูปที่จะใช้ในภาพปก — เก็บเป็นไฟล์ใน Docs ด้วย หยิบมาใช้ซ้ำได้
+        if(empty($_FILES['file']['tmp_name']) || !is_uploaded_file($_FILES['file']['tmp_name'])) docs_out(400, ['ok' => false, 'error' => 'no_file']);
+        $orig = (string)($_FILES['file']['name'] ?? '');
+        if(!in_array(strtolower(pathinfo($orig, PATHINFO_EXTENSION)), ['png', 'jpg', 'jpeg', 'gif', 'webp'], true)) docs_out(200, ['ok' => false, 'error' => 'bad_type']);
+        $r = DocsService::fileStore($uid, $_FILES['file']['tmp_name'], $orig);
+        if(!$r['ok']){ if($r['error'] === 'quota') docs_quota_err($uid); docs_out(200, $r); }
+        $f = DocsService::fileGet($r['id'], $uid);
+        $src = DocsService::userRel($uid).basename($f['stored_name']);
+        docs_out(200, ['ok' => true, 'key' => (int)$r['id'], 'src' => $src, 'url' => asset($src), 'name' => $r['name']]);
+
+    case 'cover_images':                                    // รูปที่หยิบมาใช้ได้: ภาพปกที่ออกแบบไว้ + รูปที่อัปโหลดไว้ใน Docs
+        $q = mb_substr(trim((string)post('q')), 0, 100);
+        $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $q).'%';
+        $items = [];
+        foreach(db_all("SELECT * FROM docs_documents WHERE owner_id = ? AND status = 1 AND type = 'cover' AND asset IS NOT NULL AND asset <> ''"
+                       .($q !== '' ? " AND title LIKE ?" : '')." ORDER BY updated_at DESC LIMIT 200", $q !== '' ? [$uid, $like] : [$uid]) as $d){
+            $url = DocsService::coverAssetUrl($d);
+            if($url === '') continue;
+            $c = json_decode((string)$d['content'], true) ?: [];
+            $items[] = ['kind' => 'cover', 'key' => (int)$d['id'], 'name' => $d['title'], 'url' => $url,
+                        'src' => DocsService::userRel($d['owner_id']).basename($d['asset']),
+                        'w' => (int)($c['w'] ?? 0), 'h' => (int)($c['h'] ?? 0), 'preset' => (string)($c['preset'] ?? ''),
+                        'edit' => iu('doc-edit', ['id' => (int)$d['id']])];
+        }
+        foreach(db_all("SELECT id, name, stored_name FROM docs_files WHERE owner_id = ? AND status = 1 AND ext IN ('png','jpg','jpeg','gif','webp')"
+                       .($q !== '' ? " AND name LIKE ?" : '')." ORDER BY created_at DESC LIMIT 300", $q !== '' ? [$uid, $like] : [$uid]) as $f){
+            $abs = DocsService::userDir($uid, false).basename($f['stored_name']);
+            if(!is_file($abs)) continue;
+            $dim = @getimagesize($abs);
+            $rel = DocsService::userRel($uid).basename($f['stored_name']);
+            $items[] = ['kind' => 'file', 'key' => (int)$f['id'], 'name' => $f['name'], 'url' => asset($rel), 'src' => $rel,
+                        'w' => $dim ? (int)$dim[0] : 0, 'h' => $dim ? (int)$dim[1] : 0, 'preset' => ''];
+        }
+        docs_out(200, ['ok' => true, 'items' => $items]);
 
     case 'image_upload':
         if(empty($_FILES['file']['tmp_name']) || !is_uploaded_file($_FILES['file']['tmp_name'])) docs_out(400, ['ok' => false, 'error' => 'no_file']);

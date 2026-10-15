@@ -7,7 +7,7 @@ require_once __DIR__.'/csrf.core.php';
 require_once __DIR__.'/app.core.php';
 require_once __DIR__.'/gateway.core.php';
 require_once __DIR__.'/mail.core.php';
-foreach(['RevenueShareService', 'LedgerService', 'OrderService', 'PayoutService', 'MailService', 'PermissionService', 'CertificateService', 'IntegrationService', 'IndyService', 'DocsService'] as $__s)
+foreach(['RevenueShareService', 'LedgerService', 'OrderService', 'PayoutService', 'MailService', 'PermissionService', 'CertificateService', 'IntegrationService', 'IndyService', 'DocsService', 'LiveService', 'LcService'] as $__s)
     require_once dirname(__DIR__).'/services/'.$__s.'.php';
 unset($__s);
 require_once __DIR__.'/router.core.php';
@@ -27,5 +27,5 @@ if(PHP_SAPI !== 'cli'){
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    header('Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), geolocation=()');   // กล้อง/ไมค์/แชร์จอ: ห้องสอนสด Aleanor Streaming
 }

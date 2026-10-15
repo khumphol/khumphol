@@ -49,7 +49,7 @@ function pptxPic($id, $rid, $x, $y, $w, $h){
 
 function pptxExport($title, $deckData, $imgRoot = null){
     if($imgRoot === null) $imgRoot = dirname(__DIR__, 2).'/';
-    $deck   = presentSanitize($deckData);
+    $deck   = presentFlatten(presentSanitize($deckData));   // สไลด์ชนิดใหม่ (แบบทดสอบ ตัวเลขเด่น ฯลฯ) แปลงเป็นแบบพื้นฐานก่อน
     $themes = presentThemes();
     $th     = $themes[$deck['theme']];
     $bg     = pptxHex($th['bg']); $fg = pptxHex($th['fg']); $ac = pptxHex($th['accent']);

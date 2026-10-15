@@ -17,6 +17,7 @@
 require_once dirname(__DIR__).'/core/docs/lang.php';
 require_once dirname(__DIR__).'/core/docs/grid.core.php';
 require_once dirname(__DIR__).'/core/docs/present.core.php';
+require_once dirname(__DIR__).'/core/docs/cover.core.php';
 
 class DocsService
 {
@@ -28,6 +29,7 @@ class DocsService
             'write'   => ['name' => 'Aleanor Write',   'icon' => 'fi-rr-document',     'img' => 'assets/docs/write.png',   'color' => '#2563eb', 'ext' => 'docx'],
             'grid'    => ['name' => 'Aleanor Grid',    'icon' => 'fi-rr-table-layout', 'img' => 'assets/docs/grid.png',    'color' => '#059669', 'ext' => 'xlsx'],
             'present' => ['name' => 'Aleanor Present', 'icon' => 'fi-rr-presentation', 'img' => 'assets/docs/present.png', 'color' => '#d97706', 'ext' => 'pptx'],
+            'cover'   => ['name' => 'Aleanor Cover',   'icon' => 'fi-rr-picture',      'img' => 'assets/docs/cover.png',   'color' => '#db2777', 'ext' => 'jpg'],
         ];
     }
     public static function typeInfo($t){ $all = self::types(); return $all[$t] ?? $all['write']; }
@@ -217,13 +219,42 @@ class DocsService
         if($type === 'write')   return self::toStorage(self::sanitizeHtml($content));
         if($type === 'grid')    return json_encode(gridSanitize($content), JSON_UNESCAPED_UNICODE);
         if($type === 'present') return json_encode(presentSanitize($content), JSON_UNESCAPED_UNICODE);
+        if($type === 'cover')   return json_encode(coverSanitize($content), JSON_UNESCAPED_UNICODE);
         return '';
     }
     /** เนื้อหาเปล่าของเอกสารใหม่ */
     public static function blankContent($type){
         if($type === 'grid')    return json_encode(gridBlank(), JSON_UNESCAPED_UNICODE);
         if($type === 'present') return json_encode(presentBlank(), JSON_UNESCAPED_UNICODE);
+        if($type === 'cover')   return json_encode(coverBlank(), JSON_UNESCAPED_UNICODE);
         return '';
+    }
+
+    /**
+     * ตัวเลือกภาพปกในฟอร์ม (assets/docs/cover-picker.js — ไฟล์เดียวกับ aleanor_ai): ช่อง <input type=file data-cover="course">
+     * ได้ปุ่ม "สร้างด้วย Aleanor Cover" / "เลือกจาก Aleanor Docs" — ภาพที่ได้ใส่ลงช่องไฟล์จริง ฟอร์มเดิมบันทึกได้โดยไม่ต้องแก้ฝั่งเซิร์ฟเวอร์
+     * $editUrl = URL ของ doc-edit พร้อม type=cover · $api = URL ของ docs api
+     */
+    public static function coverPicker($editUrl, $api){
+        $pre = []; foreach(coverPresets() as $k => $v) $pre[$k] = ['w' => $v['w'], 'h' => $v['h']];
+        $L = []; foreach(['create', 'docs', 'title', 'covers', 'files', 'match', 'empty', 'search', 'applied', 'loading', 'failed'] as $k) $L[$k] = docs_t('cover.picker_'.$k);
+        $cfg = ['csrf' => csrf_token(), 'base' => asset(''), 'coverUrl' => $api.'?cover=1', 'editUrl' => $editUrl, 'sep' => strpos($editUrl, '?') === false ? '?' : '&',
+                'icon' => asset('assets/docs/cover.png'), 'presets' => $pre, 'L' => $L];
+        return '<script>window.CP_CFG='.json_encode($cfg, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG).';</script>'
+             .'<script src="'.h(asset('assets/docs/cover-picker.js')).'?v='.(int)@filemtime(dirname(__DIR__).'/assets/docs/cover-picker.js').'"></script>';
+    }
+
+    // ── Aleanor Cover: ภาพที่เรนเดอร์แล้ว (asset) ──
+    /** พาธจริงของภาพปกที่เรนเดอร์แล้ว — null ถ้ายังไม่เคยบันทึกภาพ */
+    public static function coverAssetPath(array $doc){
+        if(($doc['type'] ?? '') !== 'cover' || empty($doc['asset'])) return null;
+        $abs = self::userDir($doc['owner_id'], false).basename((string)$doc['asset']);
+        return is_file($abs) ? $abs : null;
+    }
+    /** URL ของภาพปก ('' = ยังไม่เคยบันทึกภาพ) — ต่อท้าย ?v= กันแคชภาพเก่า */
+    public static function coverAssetUrl(array $doc){
+        $abs = self::coverAssetPath($doc);
+        return $abs ? asset(self::userRel($doc['owner_id']).rawurlencode(basename($abs))).'?v='.filemtime($abs) : '';
     }
 
     // ── อ่าน/เขียนเอกสาร ─────────────────────────────────────
@@ -550,6 +581,12 @@ class DocsService
             $ext = 'xlsx'; $bin = xlsxExport($doc['title'], $doc['content']);
         }elseif($doc['type'] === 'present'){
             $ext = 'pptx'; $bin = pptxExport($doc['title'], $doc['content'], $root);
+        }elseif($doc['type'] === 'cover'){
+            $abs = self::coverAssetPath($doc);
+            if(!$abs) return null;
+            $ext = strtolower(pathinfo($abs, PATHINFO_EXTENSION)) === 'png' ? 'png' : 'jpg';
+            return ['bin' => (string)file_get_contents($abs), 'name' => mb_substr(self::cleanFileName($doc['title'], 'cover'), 0, 80).'.'.$ext,
+                    'mime' => $ext === 'png' ? 'image/png' : 'image/jpeg', 'ext' => $ext];
         }else return null;
         if($bin === false || $bin === null) return null;
         $mime = [
@@ -877,6 +914,7 @@ class DocsService
   .docs-render .ag-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:.6rem; }
   .docs-render .ag-tab { padding:4px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text-secondary); cursor:pointer; font:inherit; font-size:.82rem; }
   .docs-render .ag-tab.on { background:var(--card); color:var(--primary); border-color:var(--primary); }
+  .docs-render .vd-cover img { display:block; max-width:100%; height:auto; margin:0 auto; border-radius:var(--radius); box-shadow:0 8px 24px rgba(15,23,42,.12); }
 '.presentCss();
         $fallback = ['--border' => '#e2e8f0', '--card' => '#ffffff', '--radius' => '14px', '--text-secondary' => '#64748b',
                      '--text-muted' => '#94a3b8', '--primary' => '#6366f1', '--bg' => '#f1f5f9', '--text' => '#1e293b'];
@@ -892,6 +930,11 @@ class DocsService
             return '<div class="vd-paper vd-grid">'.gridRenderHtml($doc['content']).'</div>';
         }
         if($doc['type'] === 'present') return presentRenderHtml($doc['content'], $idPrefix);
+        if($doc['type'] === 'cover'){
+            $url = self::coverAssetUrl($doc);
+            return $url !== '' ? '<div class="vd-cover"><img src="'.h($url).'" alt="'.h($doc['title']).'"></div>'
+                               : '<div class="vd-paper" style="text-align:center;color:var(--text-muted)">'.h(docs_t('cover.no_render')).'</div>';
+        }
         return '';
     }
 

@@ -18,7 +18,7 @@ if(is_post() && post('action') === 'new'){
     $fol  = (int)post('folder');
     if(!DocsService::typeValid($type)){ flash('ชนิดเอกสารไม่ถูกต้อง', 'danger'); redirect(iu('docs', ['f' => $fol ?: null])); }
     if(!DocsService::quotaAllows($me, 1)){ flash(docs_t('doc.storage_full_msg'), 'danger'); redirect(iu('docs', ['f' => $fol ?: null])); }
-    $title = $type === 'grid' ? 'ตารางใหม่' : ($type === 'present' ? 'งานนำเสนอใหม่' : 'เอกสารใหม่');
+    $title = $type === 'grid' ? 'ตารางใหม่' : ($type === 'present' ? 'งานนำเสนอใหม่' : ($type === 'cover' ? docs_t('cover.new') : 'เอกสารใหม่'));
     $id = DocsService::save(0, ['type' => $type, 'title' => $title, 'folder_id' => $fol], $me);
     audit('docs.create', 'docs_document', $id, null, ['type' => $type]);
     redirect(iu('doc-edit', ['id' => $id]));

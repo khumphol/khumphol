@@ -6,6 +6,7 @@ $TI      = DocsService::typeInfo('present');
 $deck    = presentSanitize($doc['content']);
 $LAYOUTS = presentLayouts();
 $THEMES  = presentThemes();
+$FONTS   = presentFonts();
 $courses = DocsService::coursesFor(current_user_id());
 ?><style>
   .ap-bar { display:flex; align-items:center; gap:.55rem; flex-wrap:wrap; margin-bottom:.8rem; }
@@ -16,19 +17,27 @@ $courses = DocsService::coursesFor(current_user_id());
   .ap-title:focus { outline:none; border-color:var(--primary); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 14%,transparent); }
   .ap-state { font-size:.78rem; font-weight:600; color:var(--text-muted); min-width:92px; text-align:right; }
 
-  /* เลือกธีม / เอฟเฟกต์ ด้วยปุ่มไอคอน — เห็นสีจริงและกดทีเดียว */
-  .ap-pick { display:flex; align-items:center; gap:5px; padding:4px; background:var(--bg);
-             border:1.5px solid var(--border); border-radius:12px; }
-  .th-sw { width:30px; height:30px; border-radius:9px; cursor:pointer; padding:0; position:relative; overflow:hidden;
-           border:1.5px solid var(--border); background:var(--sw-bg); transition:transform .12s, box-shadow .15s, border-color .15s; }
-  .th-sw .sw-a { position:absolute; inset:0; background:var(--sw-bg); }
-  .th-sw .sw-b { position:absolute; right:-1px; bottom:-1px; width:15px; height:15px; border-radius:9px 0 7px 0; background:var(--sw-ac); }
-  .th-sw:hover { transform:translateY(-1px); }
-  .th-sw.on { border-color:var(--primary); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent); }
-  .fx-b { width:30px; height:30px; border-radius:9px; cursor:pointer; border:1.5px solid transparent; background:transparent;
-          color:var(--text-muted); font-size:.82rem; display:inline-flex; align-items:center; justify-content:center; transition:.13s; }
-  .fx-b:hover { background:color-mix(in srgb,var(--primary) 10%,transparent); color:var(--primary); }
-  .fx-b.on { background:var(--card); color:var(--primary); border-color:var(--primary); }
+  /* ── แผงออกแบบ (ธีม สี ฟอนต์ เอฟเฟกต์) ── */
+  .ap-design-btn { display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 14px 0 8px; border-radius:11px; cursor:pointer;
+                   border:1.5px solid var(--border); background:var(--card); color:var(--text); font-family:inherit; font-weight:600; font-size:.88rem; }
+  .ap-design-btn .sw { width:28px; height:28px; border-radius:8px; border:1px solid var(--border); background:var(--sw-bg); position:relative; overflow:hidden; }
+  .ap-design-btn .sw::after { content:''; position:absolute; right:0; bottom:0; width:12px; height:12px; border-radius:7px 0 6px 0; background:var(--sw-ac); }
+  .ap-design-btn.on { border-color:var(--primary); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent); }
+  .ap-design { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; margin-bottom:.9rem; }
+  .ap-design[hidden] { display:none; }
+  .ap-dz-h { font-size:.78rem; font-weight:700; color:var(--text-secondary); margin:0 0 .5rem; display:flex; align-items:center; gap:.5rem; }
+  .ap-themes { display:grid; grid-template-columns:repeat(auto-fill,minmax(112px,1fr)); gap:.55rem; margin-bottom:1rem; }
+  .th-card { border:1.5px solid var(--border); border-radius:11px; padding:0; cursor:pointer; overflow:hidden; background:var(--card); text-align:left;
+             font-family:inherit; transition:transform .12s, box-shadow .15s, border-color .15s; }
+  .th-card:hover { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.08); }
+  .th-card.on { border-color:var(--primary); box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent); }
+  .th-card .pv-deck { pointer-events:none; }
+  .th-card span { display:block; padding:5px 8px; font-size:.74rem; font-weight:600; color:var(--text-secondary); }
+  .ap-dz-g { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.8rem; align-items:end; }
+  .ap-dz-g label { display:flex; flex-direction:column; gap:4px; font-size:.78rem; font-weight:600; color:var(--text-secondary); margin:0; }
+  .ap-dz-g .row1 { display:flex; gap:6px; align-items:center; }
+  .ap-dz-g input[type=color] { width:44px; height:36px; padding:2px; border-radius:8px; border:1px solid var(--border); background:var(--card); cursor:pointer; }
+  .ap-chk { flex-direction:row !important; align-items:center; gap:8px !important; cursor:pointer; }
   .ap-state.saving { color:var(--primary); } .ap-state.saved { color:#059669; } .ap-state.error { color:#dc2626; }
 
   .ap-work { display:grid; grid-template-columns:186px 1fr; gap:1rem; align-items:start; }
@@ -43,9 +52,8 @@ $courses = DocsService::coursesFor(current_user_id());
   .ap-thumb.drag { opacity:.4; }
   .ap-thumb.over { border-color:var(--primary); border-style:dashed; }
   .ap-thumb .n { font-size:.7rem; color:var(--text-muted); width:14px; flex-shrink:0; padding-top:2px; text-align:right; }
-  .ap-mini { flex:1; min-width:0; aspect-ratio:16/9; border-radius:6px; overflow:hidden; border:1px solid var(--border);
-             position:relative; background:var(--pv-bg,#fff); }
-  .ap-mini .pv-slide { position:absolute; inset:0; transform-origin:top left; pointer-events:none; }
+  .ap-mini { flex:1; min-width:0; border-radius:6px; overflow:hidden; border:1px solid var(--border); position:relative; pointer-events:none; }
+  .ap-mini .pv-deck { border:none; border-radius:0; }
 
   /* ── ฝั่งขวา: ตัวอย่างใหญ่อยู่บน ฟอร์มอยู่ล่าง ── */
   .ap-main { display:flex; flex-direction:column; gap:.9rem; }
@@ -81,14 +89,25 @@ $courses = DocsService::coursesFor(current_user_id());
   .pr-btn:hover { background:rgba(255,255,255,.12); }
   .pr-btn.pri { background:#6366f1; border-color:#6366f1; color:#fff; }
 
+  .ap-opts { display:flex; flex-wrap:wrap; gap:.6rem .9rem; align-items:center; padding:.7rem .8rem; border:1px dashed var(--border); border-radius:11px; }
+  .ap-opts label { display:flex; align-items:center; gap:6px; font-size:.8rem; font-weight:600; color:var(--text-secondary); margin:0; }
+  .ap-opts input[type=color] { width:34px; height:30px; padding:2px; border-radius:8px; border:1px solid var(--border); background:var(--card); cursor:pointer; }
+  .ap-opts .form-select { height:32px; padding:2px 30px 2px 10px; font-size:.82rem; min-width:150px; }
+  .ap-opts .btn { padding:.3rem .7rem; font-size:.8rem; }
+  #apLayoutPick { flex-wrap:wrap; }
+  .ap-hint { font-size:.76rem; color:var(--text-muted); margin-top:4px; display:block; }
   .ap-stage-card .pv-img.free { cursor:grab; outline:2px dashed transparent; outline-offset:3px; }
   .ap-stage-card .pv-img.free:hover { outline-color:color-mix(in srgb,var(--primary) 55%,transparent); }
   .ap-stage-card .pv-img.free.dragging { cursor:grabbing; outline-color:var(--primary); }
 <?php echo presentCss(); ?>
-  /* เปลี่ยนสไลด์แบบค่อย ๆ จาง */
-  .pv-slide { animation:pvIn .28s ease; }
-  @keyframes pvIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .pr-box .pv-deck { border:none; border-radius:0; height:100%; display:flex; align-items:center; background:transparent; }
+  .pr-box .pv-stage { max-height:100%; }
+  .ap-show { position:fixed; inset:0; z-index:9998; background:#000; display:flex; flex-direction:column; justify-content:center; }
+  .ap-show .pv-deck { border:none; border-radius:0; }
+  .ap-show .pv-stage { width:min(100vw, calc((100vh - 52px) * 16 / 9)); margin:0 auto; }
+  .ap-show-x { position:absolute; top:12px; right:14px; z-index:30; width:38px; height:38px; border-radius:50%; border:0; background:rgba(255,255,255,.14); color:#fff; cursor:pointer; font-size:16px; }
 </style>
+<script><?php echo presentJs(); ?></script>
 
 <div class="page-header">
   <div><h1 style="color:<?php echo $TI['color'];?>"><?php echo DocsService::typeIcon('present', 26);?> <?php echo htmlspecialchars($TI['name']);?></h1>
@@ -97,8 +116,9 @@ $courses = DocsService::coursesFor(current_user_id());
     <a class="btn btn-outline" href="<?php echo h(iu('docs', ['f' => $doc['folder_id'] ?? null]));?>"><i class="fi fi-rr-list"></i> <?php echo docs_t('doc.all_docs');?></a>
     <button class="btn btn-outline" onclick="apOutline()"><i class="fi fi-rr-list-check"></i> <?php echo docs_t('doc.outline');?></button>
     <button class="btn btn-outline" onclick="apPresenter()"><i class="fi fi-rr-screen"></i> <?php echo docs_t('doc.presenter');?></button>
+    <button class="btn btn-outline" onclick="apShow()"><i class="fi fi-rr-play"></i> <?php echo docs_t('doc.present_here');?></button>
     <?php if($doc){ ?>
-      <a class="btn btn-outline" target="_blank" href="<?php echo h(iu('doc-view', ['id' => $doc['id']]));?>"><i class="fi fi-rr-play"></i> <?php echo docs_t('doc.present_run');?></a>
+      <a class="btn btn-outline" target="_blank" href="<?php echo h(iu('doc-view', ['id' => $doc['id']]));?>"><i class="fi fi-rr-arrow-up-right-from-square"></i> <?php echo docs_t('doc.present_run');?></a>
       <a class="btn btn-outline" href="<?php echo h(asset('api/docs.php').'?action=export&id='.(int)$doc['id']);?>"><i class="fi fi-rr-download"></i> .pptx</a>
     <?php } ?>
     <button class="btn btn-primary" onclick="apSave(true)"><i class="fi fi-rr-disk"></i> <?php echo docs_t('common.save');?></button>
@@ -108,24 +128,7 @@ $courses = DocsService::coursesFor(current_user_id());
 <div class="ap-bar">
   <input id="apTitle" class="ap-title" value="<?php echo htmlspecialchars($doc['title'] ?? '');?>"
          placeholder="<?php echo docs_t('doc.title_ph');?>" maxlength="200">
-  <div class="ap-pick" id="apThemePick" role="group" aria-label="<?php echo docs_t('doc.theme');?>">
-    <?php foreach($THEMES as $tk => $tv){ ?>
-      <button type="button" class="th-sw<?php echo $deck['theme']===$tk?' on':'';?>" data-theme="<?php echo $tk;?>"
-              title="<?php echo docs_t('doc.theme_'.$tk);?>" aria-label="<?php echo docs_t('doc.theme_'.$tk);?>"
-              style="--sw-bg:<?php echo $tv['bg'];?>;--sw-ac:<?php echo $tv['accent'];?>;--sw-fg:<?php echo $tv['fg'];?>">
-        <span class="sw-a"></span><span class="sw-b"></span>
-      </button>
-    <?php } ?>
-  </div>
-  <div class="ap-pick" id="apFxPick" role="group" aria-label="<?php echo docs_t('doc.fx');?>">
-    <?php $fxIcon=['none'=>'fi-rr-ban','fade'=>'fi-rr-eye','slide'=>'fi-rr-arrow-right','zoom'=>'fi-rr-expand','flip'=>'fi-rr-refresh'];
-          foreach(presentFx() as $fx){ ?>
-      <button type="button" class="fx-b<?php echo ($deck['fx'] ?? 'fade')===$fx?' on':'';?>" data-fx="<?php echo $fx;?>"
-              title="<?php echo docs_t('doc.fx').' — '.docs_t('doc.fx_'.$fx);?>" aria-label="<?php echo docs_t('doc.fx_'.$fx);?>">
-        <i class="fi <?php echo $fxIcon[$fx];?>"></i>
-      </button>
-    <?php } ?>
-  </div>
+  <button type="button" class="ap-design-btn" id="apDesignBtn"><span class="sw" id="apDesignSw"></span> <i class="fi fi-rr-palette"></i> <?php echo docs_t('doc.design');?></button>
   <select id="apCourse" class="form-control form-select" style="max-width:230px">
     <option value=""><?php echo docs_t('doc.no_course');?></option>
     <?php foreach($courses as $c){ ?>
@@ -133,6 +136,25 @@ $courses = DocsService::coursesFor(current_user_id());
     <?php } ?>
   </select>
   <span id="apState" class="ap-state"></span>
+</div>
+
+<div class="ap-design" id="apDesign" hidden>
+  <div class="ap-dz-h"><i class="fi fi-rr-palette"></i> <?php echo docs_t('doc.theme');?>
+    <button type="button" class="btn btn-outline btn-sm" style="margin-left:auto" onclick="apShuffle()"><i class="fi fi-rr-shuffle"></i> <?php echo docs_t('doc.shuffle');?></button></div>
+  <div class="ap-themes" id="apThemes"></div>
+  <div class="ap-dz-g">
+    <label><?php echo docs_t('doc.accent');?>
+      <span class="row1"><input type="color" id="apAccent"><button type="button" class="btn btn-outline btn-sm" onclick="apAccentReset()"><?php echo docs_t('doc.accent_auto');?></button></span></label>
+    <label><?php echo docs_t('doc.font_head');?>
+      <select id="apFont" class="form-control form-select"><option value=""><?php echo docs_t('doc.font_auto');?></option>
+        <?php foreach($FONTS as $f){ ?><option value="<?php echo $f;?>"><?php echo htmlspecialchars(ucwords(str_replace(['chakra','bai'],['Chakra Petch','Bai Jamjuree'],$f)));?></option><?php } ?></select></label>
+    <label><?php echo docs_t('doc.fx');?>
+      <select id="apFx" class="form-control form-select"><?php foreach(presentFx() as $fx){ ?><option value="<?php echo $fx;?>"><?php echo docs_t('doc.fx_'.$fx);?></option><?php } ?></select></label>
+    <label><?php echo docs_t('doc.anim');?>
+      <select id="apAnim" class="form-control form-select"><?php foreach(presentAnims() as $an){ ?><option value="<?php echo $an;?>"><?php echo docs_t('doc.anim_'.$an);?></option><?php } ?></select></label>
+    <label><?php echo docs_t('doc.auto_sec');?><input type="number" id="apAutoSec" class="form-control" min="2" max="120"></label>
+    <label class="ap-chk"><input type="checkbox" id="apProgress"> <?php echo docs_t('doc.progress');?></label>
+  </div>
 </div>
 
 <div class="ap-work">
@@ -153,6 +175,7 @@ $courses = DocsService::coursesFor(current_user_id());
         </div>
         <input type="hidden" id="apLayout" value="content">
         <span class="sp"></span>
+        <button type="button" class="btn btn-outline btn-sm" id="apPlayBtn" onclick="apPlayPreview()"><i class="fi fi-rr-play"></i> <?php echo docs_t('doc.play_preview');?></button>
         <button type="button" class="btn-icon" title="<?php echo docs_t('doc.slide_up');?>"   onclick="apMove(-1)"><i class="fi fi-rr-arrow-up"></i></button>
         <button type="button" class="btn-icon" title="<?php echo docs_t('doc.slide_down');?>" onclick="apMove(1)"><i class="fi fi-rr-arrow-down"></i></button>
         <button type="button" class="btn-icon" title="<?php echo docs_t('doc.slide_dup');?>"  onclick="apDup()"><i class="fi fi-rr-copy"></i></button>
@@ -166,11 +189,26 @@ $courses = DocsService::coursesFor(current_user_id());
         <div id="apTitleGroup"><label><?php echo docs_t('doc.slide_head');?></label>
           <input id="apSTitle" class="form-control" maxlength="300"></div>
 
+        <div id="apVideoGroup" hidden><label><?php echo docs_t('doc.slide_video_url');?></label>
+          <input id="apSVideo" class="form-control" placeholder="https://www.youtube.com/watch?v=…">
+          <small class="ap-hint" id="apVideoMsg"></small></div>
+
         <div class="ap-two">
           <div id="apBodyGroup"><label id="apBodyLabel"><?php echo docs_t('doc.slide_body');?></label>
-            <textarea id="apSBody" class="form-control" placeholder="<?php echo docs_t('doc.slide_body_ph');?>"></textarea></div>
-          <div id="apBody2Group" hidden><label><?php echo docs_t('doc.slide_body2');?></label>
+            <textarea id="apSBody" class="form-control" placeholder="<?php echo docs_t('doc.slide_body_ph');?>"></textarea>
+            <small class="ap-hint" id="apBodyHint"></small></div>
+          <div id="apBody2Group" hidden><label id="apBody2Label"><?php echo docs_t('doc.slide_body2');?></label>
             <textarea id="apSBody2" class="form-control"></textarea></div>
+        </div>
+
+        <div class="ap-opts">
+          <label><i class="fi fi-rr-magic-wand"></i> <?php echo docs_t('doc.slide_fx');?>
+            <select id="apSFx" class="form-control form-select"><option value=""><?php echo docs_t('doc.slide_fx_inherit');?></option>
+              <?php foreach(presentFx() as $fx){ ?><option value="<?php echo $fx;?>"><?php echo docs_t('doc.fx_'.$fx);?></option><?php } ?></select></label>
+          <label id="apStepWrap"><input type="checkbox" id="apSStep"> <?php echo docs_t('doc.slide_step');?></label>
+          <label><?php echo docs_t('doc.slide_bg');?> <input type="color" id="apSBg"></label>
+          <button type="button" class="btn btn-outline" onclick="document.getElementById('apBgFile').click()"><i class="fi fi-rr-picture"></i> <?php echo docs_t('doc.slide_bgimg');?></button>
+          <button type="button" class="btn btn-outline" id="apBgClear" onclick="apBgClear()"><i class="fi fi-rr-cross-small"></i> <?php echo docs_t('doc.slide_bg_clear');?></button>
         </div>
 
         <div id="apImgGroup" hidden><label><?php echo docs_t('doc.slide_img');?></label>
@@ -215,6 +253,7 @@ $courses = DocsService::coursesFor(current_user_id());
 </div>
 
 <input type="file" id="apImgFile" accept="image/*" hidden>
+<input type="file" id="apBgFile" accept="image/*" hidden>
 
 <!-- โหมดผู้บรรยาย -->
 <div class="pr-view" id="prView">
@@ -247,6 +286,9 @@ $courses = DocsService::coursesFor(current_user_id());
   var BASE = <?php echo json_encode(app_base());?>;
   var D    = <?php echo json_encode($deck, JSON_UNESCAPED_UNICODE);?>;
   var THEMES  = <?php echo json_encode($THEMES);?>;
+  var THEME_N = <?php $tn=[]; foreach($THEMES as $tk=>$tv) $tn[$tk]=docs_t('doc.theme_'.$tk); echo json_encode($tn, JSON_UNESCAPED_UNICODE);?>;
+  var PLBL    = <?php echo json_encode(presentPlayerLabels(), JSON_UNESCAPED_UNICODE);?>;
+  var AP      = window.AleanorPresent;
   var LAYOUTS = <?php echo json_encode(array_map(function($l){ return $l['name']; }, $LAYOUTS), JSON_UNESCAPED_UNICODE);?>;
   var T = {
     saving:<?php echo json_encode(docs_t('doc.saving'),JSON_UNESCAPED_UNICODE);?>,
@@ -258,8 +300,18 @@ $courses = DocsService::coursesFor(current_user_id());
     pause: <?php echo json_encode(docs_t('doc.pr_pause'),JSON_UNESCAPED_UNICODE);?>,
     resume:<?php echo json_encode(docs_t('doc.pr_resume'),JSON_UNESCAPED_UNICODE);?>,
     noNotes:<?php echo json_encode(docs_t('doc.pr_no_notes'),JSON_UNESCAPED_UNICODE);?>,
-    endOf: <?php echo json_encode(docs_t('doc.pr_end'),JSON_UNESCAPED_UNICODE);?>
+    endOf: <?php echo json_encode(docs_t('doc.pr_end'),JSON_UNESCAPED_UNICODE);?>,
+    videoBad:<?php echo json_encode(docs_t('doc.video_bad'),JSON_UNESCAPED_UNICODE);?>,
+    body:  <?php echo json_encode(docs_t('doc.slide_body'),JSON_UNESCAPED_UNICODE);?>,
+    body2: <?php echo json_encode(docs_t('doc.slide_body2'),JSON_UNESCAPED_UNICODE);?>,
+    head:  <?php echo json_encode(docs_t('doc.slide_head'),JSON_UNESCAPED_UNICODE);?>,
+    hint:  <?php $hk=['body_ph'=>'slide_body_ph','quote'=>'hint_quote_body','quote2'=>'hint_quote_body2','stats'=>'hint_stats','timeline'=>'hint_timeline',
+                     'quiz'=>'hint_quiz','quiz2'=>'hint_quiz_body2','quizq'=>'quiz_q','section'=>'hint_section','video'=>'hint_video_body','lead'=>'slide_lead'];
+                 $ho=[]; foreach($hk as $k=>$v) $ho[$k]=docs_t('doc.'.$v); echo json_encode($ho, JSON_UNESCAPED_UNICODE);?>
   };
+  if(!D.anim) D.anim = 'rise';
+  if(D.progress === undefined) D.progress = 1;
+  if(!D.autoSec) D.autoSec = 6;
   var cur = 0, dirty = false, timer = null;
   var state = document.getElementById('apState');
   function setState(c,t){ state.className='ap-state '+c; state.textContent=t; }
@@ -267,69 +319,10 @@ $courses = DocsService::coursesFor(current_user_id());
   function S(){ return D.slides[cur]; }
   function theme(){ return THEMES[D.theme] || THEMES.light; }
 
-  // ── วาดสไลด์หนึ่งแผ่น (ใช้ร่วมกันทั้งตัวอย่าง ภาพย่อ และโหมดผู้บรรยาย) ──
-  function buildSlide(s){
-    var sec = document.createElement('section');
-    sec.className = 'pv-slide pv-' + s.layout;
-    function bullets(txt){
-      var ul = document.createElement('ul'); ul.className = 'pv-ul';
-      (txt || '').split('\n').forEach(function(line){
-        line = line.trim(); if(!line) return;
-        var li = document.createElement('li'); li.textContent = line; ul.appendChild(li);
-      });
-      return ul;
-    }
-    function h(tag, cls, txt){ var e=document.createElement(tag); e.className=cls; e.textContent=txt||''; return e; }
-    function pic(cls){
-      var w=document.createElement('div');
-      if(s.imgPos){
-        w.className='pv-img free';
-        w.style.left = s.imgPos.x + '%'; w.style.top = s.imgPos.y + '%'; w.style.width = s.imgPos.w + '%';
-      }else{
-        w.className='pv-img'+(cls?' '+cls:'');
-      }
-      if(!s.imgPos && s.imgW) w.style.width = s.imgW + '%';
-      var im=document.createElement('img'); im.src=BASE+s.img; im.draggable=false;
-      if(s.imgRound) im.style.borderRadius = '14px';
-      w.appendChild(im);
-      return w;
-    }
-
-    if(s.layout === 'title'){
-      sec.appendChild(h('h2','pv-h1', s.title));
-      if(s.body) sec.appendChild(h('p','pv-lead', s.body));
-    }else if(s.layout === 'image'){
-      if(s.title) sec.appendChild(h('h3','pv-h2', s.title));
-      if(s.img)   sec.appendChild(pic());
-      if(s.body)  sec.appendChild(h('p','pv-cap', s.body));
-    }else if(s.layout === 'two'){
-      if(s.title) sec.appendChild(h('h3','pv-h2', s.title));
-      var cols=document.createElement('div'); cols.className='pv-cols';
-      cols.appendChild(bullets(s.body)); cols.appendChild(bullets(s.body2));
-      sec.appendChild(cols);
-    }else if(s.layout === 'blank'){
-      sec.appendChild(h('div','pv-free', s.body));
-    }else{
-      if(s.title) sec.appendChild(h('h3','pv-h2', s.title));
-      sec.appendChild(bullets(s.body));
-      if(s.img) sec.appendChild(pic('sm'));
-    }
-    return sec;
-  }
-  function deckBox(s, withBar){
-    var th = theme();
-    var deck = document.createElement('div');
-    deck.className = 'pv-deck';
-    deck.style.setProperty('--pv-bg', th.bg);
-    deck.style.setProperty('--pv-fg', th.fg);
-    deck.style.setProperty('--pv-ac', th.accent);
-    deck.setAttribute('data-fx', D.fx || 'fade');
-    if(!withBar) deck.style.border = 'none';
-    var stage = document.createElement('div'); stage.className='pv-stage';
-    stage.appendChild(buildSlide(s));
-    deck.appendChild(stage);
-    return deck;
-  }
+  // ── วาดสไลด์ด้วยตัววาดร่วม (core/present/present.js) — หน้าตาเหมือนตอนนำเสนอจริงทุกจุด ──
+  function ctx(i){ return { base:BASE, deck:D, themes:THEMES, index:i, sectionNo:AP.sectionNos(D)[i] }; }
+  function stageOf(i){ return AP.stage(D.slides[i], ctx(i)); }
+  function deckBox(s, withBar){ var i = D.slides.indexOf(s); return stageOf(i < 0 ? cur : i); }
 
   // ── รายการสไลด์ (ภาพย่อจริง + ลากสลับลำดับ) ──
   var dragFrom = null;
@@ -342,13 +335,7 @@ $courses = DocsService::coursesFor(current_user_id());
       row.draggable = true;
       var n = document.createElement('span'); n.className='n'; n.textContent = i + 1;
       var mini = document.createElement('div'); mini.className='ap-mini';
-      var th = theme();
-      mini.style.setProperty('--pv-bg', th.bg);
-      mini.style.background = th.bg;
-      var sl = buildSlide(s);
-      sl.style.cssText += ';width:960px;height:540px;color:'+th.fg+';';
-      sl.style.setProperty('--pv-ac', th.accent);
-      mini.appendChild(sl);
+      mini.appendChild(stageOf(i));
       row.appendChild(n); row.appendChild(mini);
       row.addEventListener('click', function(){ save(); cur = i; load(); });
       row.addEventListener('dragstart', function(){ dragFrom = i; row.classList.add('drag'); });
@@ -364,11 +351,6 @@ $courses = DocsService::coursesFor(current_user_id());
         cur = i; load(); touch();
       });
       box.appendChild(row);
-      // ย่อสไลด์จริงให้พอดีกรอบ
-      requestAnimationFrame(function(){
-        var k = mini.clientWidth / 960;
-        if(k > 0) sl.style.transform = 'scale(' + k + ')';
-      });
     });
   }
 
@@ -381,6 +363,12 @@ $courses = DocsService::coursesFor(current_user_id());
     document.getElementById('apSBody').value  = s.body || '';
     document.getElementById('apSBody2').value = s.body2 || '';
     document.getElementById('apSNotes').value = s.notes || '';
+    document.getElementById('apSVideo').value = s.video ? (s.video.indexOf('yt:') === 0 ? 'https://youtu.be/' + s.video.slice(3) : 'https://vimeo.com/' + s.video.slice(6)) : '';
+    document.getElementById('apVideoMsg').textContent = '';
+    document.getElementById('apSFx').value = s.fx || '';
+    document.getElementById('apSStep').checked = !!s.step;
+    document.getElementById('apSBg').value = s.bg || '#ffffff';
+    document.getElementById('apBgClear').hidden = !(s.bg || s.bgImg);
     var prev = document.getElementById('apImgPrev'), clr = document.getElementById('apImgClear');
     if(s.img){ prev.src = BASE + s.img; prev.hidden = false; clr.hidden = false; }
     else { prev.removeAttribute('src'); prev.hidden = true; clr.hidden = true; }
@@ -408,10 +396,20 @@ $courses = DocsService::coursesFor(current_user_id());
     s.body2  = document.getElementById('apSBody2').value;
     s.notes  = document.getElementById('apSNotes').value;
   }
+  // ช่องกรอก/คำแนะนำเปลี่ยนตามรูปแบบสไลด์
   function applyLayout(l){
-    document.getElementById('apTitleGroup').hidden = (l === 'blank');
-    document.getElementById('apBody2Group').hidden = (l !== 'two');
-    document.getElementById('apImgGroup').hidden   = (l !== 'image' && l !== 'content');
+    var H = T.hint, set = function(id, t){ document.getElementById(id).textContent = t; };
+    document.getElementById('apTitleGroup').hidden = (l === 'blank' || l === 'quote');
+    document.getElementById('apBody2Group').hidden = (['two','quote','quiz'].indexOf(l) < 0);
+    document.getElementById('apImgGroup').hidden   = (['image','content','title','blank'].indexOf(l) < 0);
+    document.getElementById('apVideoGroup').hidden = (l !== 'video');
+    document.getElementById('apStepWrap').hidden   = (['content','two','stats','timeline'].indexOf(l) < 0);
+    set('apBodyLabel', l === 'quote' ? H.quote : l === 'quiz' ? T.body : T.body);
+    set('apBody2Label', l === 'quote' ? H.quote2 : l === 'quiz' ? H.quiz2 : T.body2);
+    var tl = document.querySelector('#apTitleGroup label'); if(tl) tl.textContent = l === 'quiz' ? H.quizq : T.head;
+    var hint = { stats:H.stats, timeline:H.timeline, quiz:H.quiz, section:H.section, video:H.video, title:H.lead }[l] || '';
+    set('apBodyHint', hint);
+    document.getElementById('apSBody').placeholder = (l === 'content' || l === 'two') ? H.body_ph : '';
   }
   window.apLayoutChange = function(){ save(); applyLayout(S().layout); drawThumbs(); preview(); touch(); };
   document.getElementById('apLayoutPick').addEventListener('click', function(e){
@@ -424,26 +422,103 @@ $courses = DocsService::coursesFor(current_user_id());
   function preview(){
     var box = document.getElementById('apPreview');
     while(box.firstChild) box.removeChild(box.firstChild);
-    box.appendChild(deckBox(S(), true));
+    box.appendChild(stageOf(cur));
     bindDrag();
   }
-  document.getElementById('apThemePick').addEventListener('click', function(e){
-    var b = e.target.closest ? e.target.closest('.th-sw') : null;
-    if(!b) return;
-    D.theme = b.dataset.theme;
-    this.querySelectorAll('.th-sw').forEach(function(x){ x.classList.toggle('on', x === b); });
-    drawThumbs(); preview(); touch();
+  // เล่นสไลด์นี้พร้อมเอฟเฟกต์/แอนิเมชันในกรอบตัวอย่าง (แก้อะไรก็กลับเป็นภาพนิ่ง)
+  window.apPlayPreview = function(){
+    save();
+    var box = document.getElementById('apPreview');
+    while(box.firstChild) box.removeChild(box.firstChild);
+    var one = JSON.parse(JSON.stringify(D)); one.slides = [S()];
+    var host = document.createElement('div'); box.appendChild(host);
+    var pl = AP.player(host, { deck:one, themes:THEMES, base:BASE, lbl:PLBL, controls:false });
+    // แสดงทีละข้อ → เปิดทีละข้อให้ดูอัตโนมัติ
+    var t = setInterval(function(){ if(!host.isConnected || !pl.next()) clearInterval(t); }, 900);
+  };
+  // นำเสนอเต็มจอจากสไลด์ที่เลือกอยู่ (ไม่ต้องบันทึกก่อน)
+  window.apShow = function(){
+    save();
+    var wrap = document.createElement('div'); wrap.className = 'ap-show';
+    var host = document.createElement('div'); wrap.appendChild(host);
+    var x = document.createElement('button'); x.className = 'ap-show-x'; x.type = 'button'; x.textContent = '✕'; wrap.appendChild(x);
+    document.body.appendChild(wrap);
+    var pl = AP.player(host, { deck:JSON.parse(JSON.stringify(D)), themes:THEMES, base:BASE, lbl:PLBL, start:cur });
+    host.focus();
+    function close(){ pl.destroy(); wrap.remove(); document.removeEventListener('keydown', esc, true); if(document.fullscreenElement) document.exitFullscreen(); }
+    function esc(e){ if(e.key === 'Escape' && !host.querySelector('.pv-ov:not([hidden])')){ e.preventDefault(); close(); } }
+    x.addEventListener('click', close);
+    document.addEventListener('keydown', esc, true);
+    if(wrap.requestFullscreen) wrap.requestFullscreen().catch(function(){});
+  };
+  // ── แผงออกแบบ ──
+  function look(){ return AP.look(D, THEMES); }
+  function paintDesignBtn(){
+    var L = look(), sw = document.getElementById('apDesignSw');
+    sw.style.setProperty('--sw-bg', L.bg); sw.style.setProperty('--sw-ac', L.ac);
+  }
+  function drawThemes(){
+    var box = document.getElementById('apThemes'); box.textContent = '';
+    var sample = { layout:'section', title:'Aa กขค', body:'', body2:'', img:'', notes:'' };
+    Object.keys(THEMES).forEach(function(k){
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'th-card' + (D.theme === k ? ' on' : '');
+      var dd = JSON.parse(JSON.stringify(D)); dd.theme = k; dd.accent = ''; dd.font = '';
+      b.appendChild(AP.stage(sample, { base:BASE, deck:dd, themes:THEMES, index:0, sectionNo:1 }));
+      var n = document.createElement('span'); n.textContent = THEME_N[k] || k; b.appendChild(n);
+      b.addEventListener('click', function(){ D.theme = k; D.accent = ''; syncDesign(); drawThemes(); redraw(); });
+      box.appendChild(b);
+    });
+  }
+  function syncDesign(){
+    var L = look();
+    document.getElementById('apAccent').value = /^#[0-9a-f]{6}$/i.test(L.ac) ? L.ac : '#6366f1';
+    document.getElementById('apFont').value = D.font || '';
+    document.getElementById('apFx').value = D.fx || 'fade';
+    document.getElementById('apAnim').value = D.anim || 'rise';
+    document.getElementById('apAutoSec').value = D.autoSec || 6;
+    document.getElementById('apProgress').checked = D.progress !== 0;
+    paintDesignBtn();
+  }
+  function redraw(){ paintDesignBtn(); drawThumbs(); preview(); touch(); }
+  document.getElementById('apDesignBtn').addEventListener('click', function(){
+    var p = document.getElementById('apDesign'); p.hidden = !p.hidden; this.classList.toggle('on', !p.hidden);
+    if(!p.hidden) drawThemes();
   });
-  document.getElementById('apFxPick').addEventListener('click', function(e){
-    var b = e.target.closest ? e.target.closest('.fx-b') : null;
-    if(!b) return;
-    D.fx = b.dataset.fx;
-    this.querySelectorAll('.fx-b').forEach(function(x){ x.classList.toggle('on', x === b); });
-    preview(); touch();
+  document.getElementById('apAccent').addEventListener('input', function(){ D.accent = this.value; redraw(); });
+  window.apAccentReset = function(){ D.accent = ''; syncDesign(); redraw(); };
+  document.getElementById('apFont').addEventListener('change', function(){ D.font = this.value; redraw(); });
+  document.getElementById('apFx').addEventListener('change', function(){ D.fx = this.value; touch(); apPlayPreview(); });
+  document.getElementById('apAnim').addEventListener('change', function(){ D.anim = this.value; touch(); apPlayPreview(); });
+  document.getElementById('apAutoSec').addEventListener('change', function(){ D.autoSec = Math.max(2, Math.min(120, parseInt(this.value, 10) || 6)); this.value = D.autoSec; touch(); });
+  document.getElementById('apProgress').addEventListener('change', function(){ D.progress = this.checked ? 1 : 0; touch(); });
+  window.apShuffle = function(){
+    var ks = Object.keys(THEMES).filter(function(k){ return k !== D.theme; });
+    var fx = <?php echo json_encode(array_values(array_diff(presentFx(), ['none'])));?>, an = <?php echo json_encode(array_values(array_diff(presentAnims(), ['none','type'])));?>;
+    D.theme = ks[Math.floor(Math.random() * ks.length)]; D.accent = ''; D.font = '';
+    D.fx = fx[Math.floor(Math.random() * fx.length)]; D.anim = an[Math.floor(Math.random() * an.length)];
+    syncDesign(); drawThemes(); redraw(); apPlayPreview();
+  };
+
+  // ── ตัวเลือกของสไลด์แผ่นนี้ ──
+  document.getElementById('apSFx').addEventListener('change', function(){ S().fx = this.value; touch(); apPlayPreview(); });
+  document.getElementById('apSStep').addEventListener('change', function(){ S().step = this.checked ? 1 : 0; touch(); apPlayPreview(); });
+  document.getElementById('apSBg').addEventListener('input', function(){ S().bg = this.value; S().bgImg = ''; document.getElementById('apBgClear').hidden = false; drawThumbs(); preview(); touch(); });
+  window.apBgClear = function(){ S().bg = ''; S().bgImg = ''; load(); touch(); };
+  document.getElementById('apBgFile').addEventListener('change', function(){
+    var f = this.files && this.files[0]; this.value = '';
+    if(!f) return;
+    upload(f, function(url){ S().bgImg = url; S().bg = ''; load(); touch(); });
+  });
+  document.getElementById('apSVideo').addEventListener('change', function(){
+    var v = this.value.trim(), m, id = '';
+    if((m = v.match(/(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|live\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{6,20})/))) id = 'yt:' + m[1];
+    else if((m = v.match(/vimeo\.com\/(?:video\/)?([0-9]{4,12})/))) id = 'vimeo:' + m[1];
+    document.getElementById('apVideoMsg').textContent = (v && !id) ? T.videoBad : '';
+    S().video = id; drawThumbs(); preview(); touch();
   });
 
   // ── จัดการสไลด์ ──
-  window.apAdd = function(){ save(); D.slides.splice(cur+1, 0, {layout:'content',title:'',body:'',body2:'',img:'',notes:''}); cur++; load(); touch(); };
+  window.apAdd = function(){ save(); D.slides.splice(cur+1, 0, {layout:'content',title:'',body:'',body2:'',img:'',notes:'',fx:'',step:0,bg:'',bgImg:'',video:''}); cur++; load(); touch(); };
   window.apDup = function(){ save(); D.slides.splice(cur+1, 0, JSON.parse(JSON.stringify(S()))); cur++; load(); touch(); };
   window.apDel = function(){
     if(D.slides.length <= 1){ alert(T.last); return; }
@@ -479,14 +554,17 @@ $courses = DocsService::coursesFor(current_user_id());
   };
 
   // ── รูปในสไลด์ ──
-  document.getElementById('apImgFile').addEventListener('change', function(){
-    var f = this.files && this.files[0]; this.value='';
-    if(!f) return;
+  function upload(f, done){
     setState('saving', T.saving);
     var fd=new FormData(); fd.append('file', f); fd.append('csrf_token', CSRF);
     fetch(DOCS.api+'?action=image_upload',{method:'POST',body:fd}).then(function(r){return r.json();})
-      .then(function(j){ if(!j.ok){ setState('error', T.error+' ('+(j.error||'')+')'); return; } S().img=j.url; load(); touch(); })
+      .then(function(j){ if(!j.ok){ setState('error', T.error+' ('+(j.error||'')+')'); return; } done(j.url); })
       .catch(function(){ setState('error', T.error); });
+  }
+  document.getElementById('apImgFile').addEventListener('change', function(){
+    var f = this.files && this.files[0]; this.value='';
+    if(!f) return;
+    upload(f, function(url){ S().img = url; load(); touch(); });
   });
   window.apImgClear = function(){ S().img=''; S().imgPos=null; load(); touch(); };
   window.apImgFreeToggle = function(){
@@ -557,9 +635,9 @@ $courses = DocsService::coursesFor(current_user_id());
   function prPaint(){
     var now = D.slides[prI], nxt = D.slides[prI+1];
     var a = document.getElementById('prNow'); while(a.firstChild) a.removeChild(a.firstChild);
-    a.appendChild(deckBox(now, false));
+    a.appendChild(stageOf(prI));
     var b = document.getElementById('prNext'); while(b.firstChild) b.removeChild(b.firstChild);
-    if(nxt) b.appendChild(deckBox(nxt, false));
+    if(nxt) b.appendChild(stageOf(prI + 1));
     else { var e=document.createElement('div'); e.style.cssText='display:flex;align-items:center;justify-content:center;height:100%;opacity:.5;font-size:.9rem'; e.textContent=T.endOf; b.appendChild(e); }
     document.getElementById('prNotes').textContent = (now.notes || '').trim() || T.noNotes;
     document.getElementById('prPos').textContent = (prI+1) + ' / ' + D.slides.length;
@@ -617,6 +695,7 @@ $courses = DocsService::coursesFor(current_user_id());
   window.addEventListener('beforeunload', function(e){ if(dirty){ e.preventDefault(); e.returnValue=''; } });
   window.addEventListener('resize', function(){ drawThumbs(); });
 
+  syncDesign();
   load();
 })();
 </script>

@@ -14,7 +14,8 @@ $courses = db_all("SELECT c.*, (SELECT COUNT(*) FROM lessons l WHERE l.course_id
                      (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id AND e.status = 'active') AS n_students
                    FROM courses c WHERE c.instructor_id = ? ORDER BY c.updated_at DESC", [$uid]);
 ?>
-<div class="row between mb"><h1>คอร์สของฉัน</h1></div>
+<div class="row between mb"><h1>คอร์สของฉัน</h1>
+  <?php if(LcService::enabled() && PermissionService::can($uid, 'lc')): ?><a class="btn btn-outline" href="<?= h(iu('lc-library')) ?>"><i class="fi fi-rr-books"></i> นำเข้าจากคลัง Aleanor LC</a><?php endif; ?></div>
 <div class="card mb">
   <form method="post" class="row"><?= csrf_field() ?><input type="hidden" name="action" value="create">
     <input type="text" name="title" placeholder="ชื่อคอร์สใหม่" required style="max-width:420px"><button class="btn btn-primary">+ สร้างคอร์ส</button></form>
