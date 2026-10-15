@@ -5,3 +5,4 @@ uploads/slips/*
 .DS_Store
 storage/logs/*
 !storage/logs/.gitkeep
+storage/install.lock

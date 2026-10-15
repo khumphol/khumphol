@@ -9,6 +9,15 @@ if (function_exists('mysqli_report')) { mysqli_report(MYSQLI_REPORT_OFF); }
 
 $__localConfig = __DIR__ . '/config.local.php';
 if (is_file($__localConfig)) { require_once $__localConfig; }
+elseif (PHP_SAPI !== 'cli' && !defined('DB_NAME')) {
+    // ยังไม่ได้ติดตั้ง (ไม่มี config.local.php) → ส่งไปตัวติดตั้ง install/
+    $__app  = str_replace('\\', '/', (string)realpath(dirname(__DIR__)));
+    $__root = str_replace('\\', '/', (string)realpath($_SERVER['DOCUMENT_ROOT'] ?? ''));
+    $__base = ($__root !== '' && strpos($__app, $__root) === 0) ? substr($__app, strlen($__root))
+            : preg_replace('~/(admin|instructor|api)$~', '', rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/'));
+    header('Location: '.rtrim('/'.trim($__base, '/'), '/').'/install/', true, 302);
+    exit;
+}
 unset($__localConfig);
 
 if (!defined('DB_HOST'))     define('DB_HOST', 'localhost');

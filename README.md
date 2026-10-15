@@ -16,9 +16,22 @@ It is a sibling app to `aleanor_ai` and uses the same conventions: procedural PH
 | Instructor (`/instructor`) | Dashboard, courses (sections, lessons, price, submit for review), lesson types (video/text/**Indy**/**Docs**/**Playground**), **Aleanor Docs** (Write/Grid/Present, folders, trash, quota), **Aleanor Indy** (branching video), students and their progress, coupons, earnings and payouts, profile, bank account and tax details, a **VC** room per course |
 | Admin (`/admin`) | Dashboard; course review; instructor approval with a per-instructor rate; members; orders and refunds (partial refunds allowed, and refunds through Omise/Stripe); monthly instructor payouts; revenue share rules at 3 levels with history; reports and CSV. The **Admin hub** has: instructor permissions (checkbox matrix), modules on/off, settings, platform coupons, tax and receipts, email and outbox, Playground & VC, and the audit log |
 
+## Install (web wizard)
+
+On a fresh copy there is no `core/config.local.php`, so every page redirects to the installer at `install/`. It has 5 steps:
+
+1. **Server check:** PHP 8.0+, the extensions the app uses (mysqli, json, mbstring, openssl, curl, zip, dom, fileinfo, session, hash; iconv optional), and writable `uploads/`, `storage/` and `core/`.
+2. **Database:** host, port, name, user and password, with a "Test connection" button. The installer creates the database if it doesn't exist and the user has permission. It only accepts an **empty** database, so it can't overwrite a live one. It then runs `sql/0*.sql` in order. The test accounts and sample course in `002_seed.sql` are added only if you tick "Add sample data".
+3. **First admin:** name, email and password (8+ characters, bcrypt).
+4. **Site and payments:** site name, base URL, `APP_ENV` (prod/dev) and the gateway: Omise or Stripe, test or live, with optional keys. Keys must match the chosen mode (`pkey_test_`/`pk_test_` for test). The mock gateway is allowed only with `APP_ENV=dev`.
+5. **Install:** writes `core/config.local.php` from `config.local.example.php` and creates `storage/install.lock`. If `core/` isn't writable, the installer shows the file contents for you to save by hand.
+
+Every form is CSRF-protected. Once `storage/install.lock` or `core/config.local.php` exists, the installer refuses to run (403). To reinstall, delete both files and use a new empty database. Screenshots of every step are in [`docs/screenshots/installer/`](docs/screenshots/installer/).
+
 ## Run on MAMP (development)
 
 ```bash
+# fresh checkout: open http://localhost:8888/2026/aleanor/aleanor_cloud/ → redirects to install/ (tick "Add sample data"), or by hand:
 cp core/config.local.example.php core/config.local.php     # set APP_ENV=dev and the database (MAMP root/root)
 bash sql/install.sh                                         # creates the aleanor_cloud database and runs sql/0*.sql in order
 /Applications/MAMP/bin/php/php8.4.1/bin/php sql/demo.php     # optional: extra courses and sample sales
@@ -34,6 +47,7 @@ Open <http://localhost:8888/2026/aleanor/aleanor_cloud/>. Test accounts (passwor
 php tests/run.php        # money, revenue share, rule precedence, cart/coupons, partial refunds, payouts, VAT, permissions, SSO/JWT, throttling
 php tests/indy_test.php  # Indy
 php tests/docs_test.php  # Docs
+php tests/install_test.php  # installer: SQL splitting, sample-data filter, key/mode checks, config + lock; installs into a temporary aleanor_cloud_installtest_ci database and drops it
 ```
 
 The integration tests run inside a transaction that is rolled back, so they leave no data behind.
@@ -41,8 +55,8 @@ The integration tests run inside a transaction that is rolled back, so they leav
 ## Deploy (production)
 
 1. Upload all files except `core/config.local.php`, `uploads/*` and `storage/logs/*`. The web root must allow `.htaccess`: it blocks `core/`, `services/`, `sql/`, `tests/`, `cron/`, `views/`, `pages/` and `storage/`, and stops scripts from running in `uploads/`. On nginx, write equivalent rules yourself.
-2. Create `core/config.local.php` from `config.local.example.php`. Set the real DB values and `APP_ENV=prod`. The shipped `config.core.php` defaults to `prod` with an empty DB password.
-3. Import `sql/001_schema.sql`, then `002`–`007` in numeric order. Skip the test accounts in `002_seed.sql` on production: create an admin yourself and delete or suspend those 3 users.
+2. Open `https://your-domain/install/` and run the wizard (see **Install** above) with sample data **unticked** and `APP_ENV=prod`. It creates the schema, the first admin and `core/config.local.php`, then locks itself.
+3. Manual alternative: create `core/config.local.php` from `config.local.example.php` (real DB values, `APP_ENV=prod`), import `sql/0*.sql` in numeric order without the test accounts in `002_seed.sql`, and create an admin yourself.
 4. Make `uploads/` and `storage/logs/` writable by the web server. Errors are written to `storage/logs/php-YYYY-MM.log` and are not shown to users.
 5. Use HTTPS. The session cookie `ACSESS` is automatically `Secure`, `HttpOnly` and `SameSite=Lax`.
 6. Under Admin → Settings:
