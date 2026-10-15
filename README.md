@@ -20,6 +20,8 @@ It is a sibling app to `aleanor_ai` and uses the same conventions: procedural PH
 
 On a fresh copy there is no `core/config.local.php`, so every page redirects to the installer at `install/`. It has 5 steps:
 
+0. **Setup token:** on first visit the installer writes a random token to `storage/install.token`, which can't be read from the web. Open that file on the server (SSH, FTP, the host's file manager, or Finder on a dev Mac) and paste the token in. Until then nobody can use the installer, so someone who finds `install/` before you can't take over the site or use the database form to probe your network. The token file is deleted when installation finishes.
+
 1. **Server check:** PHP 8.0+, the extensions the app uses (mysqli, json, mbstring, openssl, curl, zip, dom, fileinfo, session, hash; iconv optional), and writable `uploads/`, `storage/` and `core/`.
 2. **Database:** host, port, name, user and password, with a "Test connection" button. The installer creates the database if it doesn't exist and the user has permission. It only accepts an **empty** database, so it can't overwrite a live one. It then runs `sql/0*.sql` in order. The test accounts and sample course in `002_seed.sql` are added only if you tick "Add sample data".
 3. **First admin:** name, email and password (8+ characters, bcrypt).
@@ -47,7 +49,7 @@ Open <http://localhost:8888/2026/aleanor/aleanor_cloud/>. Test accounts (passwor
 php tests/run.php        # money, revenue share, rule precedence, cart/coupons, partial refunds, payouts, VAT, permissions, SSO/JWT, throttling
 php tests/indy_test.php  # Indy
 php tests/docs_test.php  # Docs
-php tests/install_test.php  # installer: SQL splitting, sample-data filter, key/mode checks, config + lock; installs into a temporary aleanor_cloud_installtest_ci database and drops it
+php tests/install_test.php  # installer: setup token, SQL splitting, sample-data filter, key/mode checks, config + lock; installs into a temporary aleanor_cloud_installtest_ci database and drops it
 ```
 
 The integration tests run inside a transaction that is rolled back, so they leave no data behind.

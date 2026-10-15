@@ -9,9 +9,25 @@ define('INST_MIN_PHP', '8.0.0');
 if(!defined('INST_CONFIG'))  define('INST_CONFIG', INST_ROOT.'/core/config.local.php');
 if(!defined('INST_EXAMPLE')) define('INST_EXAMPLE', INST_ROOT.'/core/config.local.example.php');
 if(!defined('INST_LOCK'))    define('INST_LOCK', INST_ROOT.'/storage/install.lock');
+if(!defined('INST_TOKEN'))   define('INST_TOKEN', INST_ROOT.'/storage/install.token');
 
 /** ติดตั้งแล้ว = มี install.lock หรือมี config.local.php อยู่แล้ว (เครื่องที่ตั้งค่ามือก่อนมีตัวติดตั้ง) */
 function inst_installed(){ return is_file(INST_LOCK) || is_file(INST_CONFIG); }
+
+// ── 0) โทเคนติดตั้ง: กันคนอื่นที่เจอ install/ ก่อนเจ้าของ (ยึดระบบ / ใช้ฟอร์ม DB สแกนเครือข่ายภายใน) ──
+// สร้างครั้งแรกลง storage/install.token (เว็บอ่านไม่ได้ — storage/.htaccess) ผู้ติดตั้งต้องเปิดไฟล์จากเซิร์ฟเวอร์เอง
+/** คืนโทเคน (สร้างถ้ายังไม่มี) หรือ '' ถ้าเขียนไม่ได้ */
+function inst_token_ensure(){
+    if(is_file(INST_TOKEN)){ $t = trim((string)@file_get_contents(INST_TOKEN)); if(preg_match('/^[a-f0-9]{32}$/', $t)) return $t; }
+    $t = bin2hex(random_bytes(16));
+    if(!@file_put_contents(INST_TOKEN, $t."\n", LOCK_EX)) return '';
+    @chmod(INST_TOKEN, 0600);
+    return $t;
+}
+function inst_token_check($given){
+    $t = is_file(INST_TOKEN) ? trim((string)@file_get_contents(INST_TOKEN)) : '';
+    return $t !== '' && is_string($given) && hash_equals($t, strtolower(trim($given)));
+}
 
 // ── 1) ตรวจความพร้อมของเซิร์ฟเวอร์ ──
 /** คืน [ ['label','ok','detail','required'], ... ] */
@@ -212,5 +228,6 @@ function inst_finish($configPhp, array $info){
     @chmod(INST_CONFIG, 0640);
     $lock = json_encode(['installed_at' => date('c')] + $info, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     if(!@file_put_contents(INST_LOCK, $lock, LOCK_EX)) return 'lock';
+    @unlink(INST_TOKEN);
     return '';
 }

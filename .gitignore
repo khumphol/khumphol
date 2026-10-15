@@ -6,3 +6,4 @@ uploads/slips/*
 storage/logs/*
 !storage/logs/.gitkeep
 storage/install.lock
+storage/install.token

@@ -44,7 +44,19 @@ if(inst_installed() && !$awaitingConfig){
 $errors = []; $notice = '';
 $old = function($k, $d = '') { return $_POST[$k] ?? $d; };
 
-if($step && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'){
+// ── โทเคนติดตั้ง: ต้องผ่านก่อนใช้งานทุกขั้น ──
+$tokenFile = '';
+if($step && empty($S['token_ok'])){
+    $tokenFile = inst_token_ensure() !== '' ? 'storage/install.token' : '';
+    if(($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['setup_token'])){
+        if(!csrf_verify()) $errors[] = 'เซสชันหมดอายุหรือฟอร์มไม่ถูกต้อง (CSRF) — กรุณาลองใหม่';
+        elseif(!inst_token_check($_POST['setup_token'])){ usleep(500000); $errors[] = 'โทเคนไม่ถูกต้อง'; }
+        else { session_regenerate_id(true); $S['token_ok'] = true; inst_go($S['reached']); }
+    }
+    $step = -1;                                                     // แสดงหน้ากรอกโทเคนแทน
+}
+
+if($step > 0 && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'){
     if(!csrf_verify()){
         $errors[] = 'เซสชันหมดอายุหรือฟอร์มไม่ถูกต้อง (CSRF) — กรุณาลองใหม่';
     }
@@ -120,7 +132,7 @@ if($step && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST'){
             // ผู้ใช้วาง config เองแล้ว → เขียนแค่ล็อก
             if(!is_file(INST_CONFIG)) $errors[] = 'ยังไม่พบไฟล์ core/config.local.php';
             elseif(!@file_put_contents(INST_LOCK, json_encode(['installed_at' => date('c')] + $info, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) $errors[] = 'เขียน storage/install.lock ไม่ได้';
-            else { $S['done'] = true; unset($S['awaiting_config']); }
+            else { @unlink(INST_TOKEN); $S['done'] = true; unset($S['awaiting_config']); }
         } else {
             $r = inst_finish(inst_render_config($S['db'], $S['site']['env']), $info);
             if($r === 'config'){ $S['awaiting_config'] = true; $awaitingConfig = true; }
@@ -222,7 +234,21 @@ code{background:var(--surface2);padding:1px 6px;border-radius:5px;font-size:.92e
 <?php if($errors): ?><div class="alert err"><ul><?php foreach($errors as $er): ?><li><?= e($er) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
 <?php if($notice): ?><div class="alert info"><?= e($notice) ?></div><?php endif; ?>
 
-<?php if($step === 0): ?>
+<?php if($step === -1): ?>
+  <h2>ยืนยันว่าคุณเป็นผู้ติดตั้ง</h2>
+  <p class="sub">กันคนอื่นที่เปิด install/ เจอก่อนคุณ — โทเคนอยู่ในไฟล์บนเซิร์ฟเวอร์เท่านั้น</p>
+  <?php if($tokenFile): ?>
+    <p>เปิดไฟล์ <code><?= e($tokenFile) ?></code> ในโฟลเดอร์ของแอป (ผ่าน SSH / FTP / File Manager ของโฮสต์ หรือ Finder บนเครื่องพัฒนา) แล้วคัดลอกโทเคนมาวาง</p>
+    <form method="post">
+      <?= csrf_field() ?>
+      <div class="grid" style="margin-top:14px"><div class="full"><label>โทเคนติดตั้ง</label><input type="text" name="setup_token" autocomplete="off" spellcheck="false" required autofocus></div></div>
+      <div class="actions"><span></span><button class="btn">ยืนยัน →</button></div>
+    </form>
+  <?php else: ?>
+    <div class="alert err">เขียนไฟล์ <code>storage/install.token</code> ไม่ได้ — ให้สิทธิ์เว็บเซิร์ฟเวอร์เขียนโฟลเดอร์ <code>storage/</code> แล้วโหลดหน้านี้ใหม่</div>
+  <?php endif; ?>
+
+<?php elseif($step === 0): ?>
   <h2>ติดตั้งแล้ว</h2>
   <p class="sub">ระบบนี้ติดตั้งเรียบร้อยแล้ว ตัวติดตั้งจึงถูกล็อกไว้</p>
   <p>ถ้าต้องการติดตั้งใหม่จริง ๆ ให้ผู้ดูแลเซิร์ฟเวอร์ลบ <code>storage/install.lock</code> และ <code>core/config.local.php</code> ก่อน (ใช้ฐานข้อมูลว่างใหม่)</p>

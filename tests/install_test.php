@@ -11,6 +11,7 @@ $tmp = sys_get_temp_dir().'/aleanor_install_test_'.getmypid();
 @mkdir($tmp, 0700, true);
 define('INST_CONFIG', $tmp.'/config.local.php');
 define('INST_LOCK', $tmp.'/install.lock');
+define('INST_TOKEN', $tmp.'/install.token');
 define('ALEANOR_INSTALLER', 1);
 require __DIR__.'/../install/installer.lib.php';
 
@@ -54,6 +55,15 @@ eq('base URL เติม / ท้าย', 'https://ex.com/app/', inst_normalize
 eq('base URL ไม่มี scheme → false', false, inst_normalize_base_url('ex.com'));
 ok('ชื่อฐานกัน injection', !inst_valid_db_name('x`; DROP DATABASE y') && inst_valid_db_name('aleanor_cloud_2'));
 
+section('โทเคนติดตั้ง');
+ok('ไม่มีไฟล์โทเคน → ปฏิเสธทุกค่า', !inst_token_check('') && !inst_token_check('abc'));
+$tok = inst_token_ensure();
+ok('สร้างโทเคน 32 hex', (bool)preg_match('/^[a-f0-9]{32}$/', $tok) && is_file(INST_TOKEN));
+eq('เรียกซ้ำได้โทเคนเดิม', $tok, inst_token_ensure());
+ok('โทเคนถูก (มีช่องว่าง/ตัวใหญ่) ผ่าน', inst_token_check('  '.strtoupper($tok).' '));
+ok('โทเคนผิด / ว่าง / array ไม่ผ่าน', !inst_token_check(substr($tok, 0, 31).'0') && !inst_token_check('') && !inst_token_check(['x']));
+eq('ไฟล์โทเคน chmod 600', '600', substr(sprintf('%o', fileperms(INST_TOKEN)), -3));
+
 section('config.local.php + ล็อก');
 $cfg = inst_render_config(['host' => 'db.local', 'port' => 3307, 'user' => "u'ser", 'pass' => 'p$a\\ss\'"', 'name' => 'acl'], 'prod');
 file_put_contents($tmp.'/check.php', $cfg."\necho json_encode([DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_NAME, APP_ENV]);");
@@ -63,6 +73,7 @@ ok('config ไม่มี CHANGE_ME เหลือ', strpos($cfg, 'CHANGE_ME')
 ok('ยังไม่ติดตั้ง', !inst_installed());
 eq('inst_finish เขียน config + lock', '', inst_finish($cfg, ['db' => 'acl']));
 ok('ติดตั้งแล้ว → ล็อก', inst_installed() && is_file(INST_LOCK));
+ok('ติดตั้งเสร็จแล้วลบโทเคนทิ้ง', !is_file(INST_TOKEN));
 ok('install.lock เป็น JSON มีเวลา', isset(json_decode(file_get_contents(INST_LOCK), true)['installed_at']));
 @unlink(INST_LOCK);
 ok('มีแค่ config ก็ถือว่าติดตั้งแล้ว', inst_installed());
